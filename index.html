@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FORM SBBK OBAT</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --green-900:#1b4332;
+    --green-800:#2d6a4f;
+    --green-700:#40916c;
+    --green-500:#74c69d;
+    --green-200:#b7e4c7;
+    --green-100:#d8f3dc;
+    --green-50:#f0f7f4;
+    --text:#1f2937;
+    --muted:#6b7280;
+    --white:#fff;
+    --shadow: 0 4px 20px rgba(45,106,79,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
+  body{background:var(--green-50);color:var(--text);min-height:100vh}
+
+  /* LAYOUT */
+  .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+  /* SIDEBAR */
+  .sidebar{
+    background:linear-gradient(180deg,var(--green-900),var(--green-800));
+    color:#e7f5ec;padding:22px 0;position:sticky;top:0;height:100vh;
+    display:flex;flex-direction:column;
+  }
+  .brand{display:flex;align-items:center;gap:12px;padding:0 22px 22px;border-bottom:1px solid rgba(255,255,255,.1)}
+  .brand .logo{
+    width:42px;height:42px;border-radius:12px;background:var(--green-500);
+    display:grid;place-items:center;font-size:22px;box-shadow:0 4px 10px rgba(0,0,0,.2)
+  }
+  .brand h1{font-size:15px;line-height:1.2;letter-spacing:.5px}
+  .brand small{display:block;font-size:11px;opacity:.7;font-weight:400;margin-top:2px}
+  nav{padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+  nav a{
+    color:#d8f3dc;text-decoration:none;padding:11px 14px;border-radius:10px;
+    display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;
+    transition:.2s;
+  }
+  nav a:hover{background:rgba(255,255,255,.08)}
+  nav a.active{background:var(--green-500);color:var(--green-900);font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+  .sidebar footer{margin-top:auto;padding:16px 22px;font-size:11px;opacity:.55;text-align:center}
+
+  /* MAIN */
+  main{padding:26px 30px;overflow-x:hidden}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+  .topbar h2{font-size:20px;color:var(--green-800)}
+  .topbar .user{background:var(--white);padding:8px 14px;border-radius:30px;font-size:13px;color:var(--green-700);box-shadow:var(--shadow);font-weight:500}
+
+  /* CARDS */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:22px}
+  .card{
+    background:var(--white);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow);
+    border-left:5px solid var(--green-700);
+  }
+  .card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+  .card .value{font-size:22px;font-weight:700;color:var(--green-800);margin-top:6px}
+  .card .sub{font-size:12px;color:var(--muted);margin-top:4px}
+
+  /* PANEL */
+  .panel{
+    background:var(--white);border-radius:16px;padding:20px;box-shadow:var(--shadow);
+    margin-bottom:22px;
+  }
+  .panel h3{font-size:15px;color:var(--green-800);margin-bottom:14px;font-weight:600}
+
+  /* FILTER */
+  .filter-row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+  .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:150px}
+  .field label{font-size:12px;color:var(--muted);font-weight:600}
+  input,select,textarea{
+    padding:10px 12px;border:1.5px solid #e2e8e4;border-radius:10px;
+    font-size:13px;background:#fbfdfb;transition:.2s;outline:none;color:var(--text);
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--green-500);background:#fff;box-shadow:0 0 0 3px rgba(116,198,157,.2)}
+  textarea{resize:vertical;min-height:60px}
+
+  /* BUTTON */
+  .btn{
+    padding:10px 18px;border:none;border-radius:10px;font-size:13px;font-weight:600;
+    cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn-primary{background:var(--green-700);color:#fff}
+  .btn-primary:hover{background:var(--green-800);transform:translateY(-1px);box-shadow:0 6px 14px rgba(45,106,79,.3)}
+  .btn-ghost{background:var(--green-100);color:var(--green-800)}
+  .btn-ghost:hover{background:var(--green-200)}
+  .btn-danger{background:#fee2e2;color:#b91c1c}
+  .btn-danger:hover{background:#fecaca}
+
+  /* CHART GRID */
+  .chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+  @media(max-width:900px){.chart-grid{grid-template-columns:1fr}}
+  .chart-box{background:var(--white);border-radius:16px;padding:20px;box-shadow:var(--shadow);height:340px;position:relative}
+  .chart-box h3{font-size:14px;color:var(--green-800);margin-bottom:10px}
+
+  /* FORM */
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .form-grid .full{grid-column:1/-1}
+
+  /* TABLE */
+  .table-wrap{overflow-x:auto;border-radius:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1100px}
+  th{
+    background:var(--green-100);color:var(--green-900);padding:12px 10px;
+    text-align:left;font-weight:600;font-size:12px;white-space:nowrap;
+  }
+  td{padding:10px;border-bottom:1px solid #eef3f0;vertical-align:top}
+  tr:hover td{background:#f7fbf8}
+  .badge{
+    display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;
+  }
+  .badge.kab{background:#dbeafe;color:#1e40af}
+  .badge.prov{background:#fef3c7;color:#92400e}
+  .badge.bkkbn{background:#dcfce7;color:#166534}
+
+  .page{display:none}
+  .page.active{display:block}
+
+  .toast{
+    position:fixed;bottom:24px;right:24px;background:var(--green-800);color:#fff;
+    padding:14px 22px;border-radius:12px;font-size:13px;font-weight:500;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);transform:translateY(100px);opacity:0;
+    transition:.3s;z-index:999;
+  }
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.err{background:#b91c1c}
+
+  .empty{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+  .loading{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  @media(max-width:768px){
+    .app{grid-template-columns:1fr}
+    .sidebar{position:fixed;left:-260px;z-index:100;transition:.3s}
+    .sidebar.open{left:0}
+    .menu-toggle{display:block !important}
+    main{padding:20px}
+  }
+  .menu-toggle{display:none;background:var(--green-700);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:18px}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">💊</div>
+      <div>
+        <h1>FORM SBBK OBAT</h1>
+        <small>Sistem Input Data SBBK</small>
+      </div>
+    </div>
+    <nav>
+      <a data-page="dashboard" class="active">📊 Dashboard</a>
+      <a data-page="input">📝 Input Data</a>
+      <a data-page="data">📋 Data SBBK</a>
+      <a data-page="pengaturan">⚙️ Pengaturan</a>
+    </nav>
+    <footer>© 2024 SBBK Obat<br>v1.0</footer>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <h2 id="pageTitle">Dashboard</h2>
+      </div>
+      <div class="user">👤 Admin SBBK</div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page active">
+      <div class="panel">
+        <h3>🔎 Filter Laporan</h3>
+        <div class="filter-row">
+          <div class="field">
+            <label>Dari Tanggal</label>
+            <input type="date" id="fFrom" />
+          </div>
+          <div class="field">
+            <label>Sampai Tanggal</label>
+            <input type="date" id="fTo" />
+          </div>
+          <div class="field">
+            <label>Asal Instansi</label>
+            <select id="fAsal">
+              <option value="">Semua Instansi</option>
+              <option>Dinas Kabupaten</option>
+              <option>Dinas Provinsi</option>
+              <option>Dinas BKKBN</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="loadDashboard()">🔍 Tampilkan</button>
+          <button class="btn btn-ghost" onclick="resetFilter()">↻ Reset</button>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="label">Total Nilai Transaksi</div>
+          <div class="value" id="statTotal">Rp 0</div>
+          <div class="sub" id="statTotalSub">0 transaksi</div>
+        </div>
+        <div class="card" style="border-left-color:#3b82f6">
+          <div class="label">Total Item Obat/BMHP</div>
+          <div class="value" id="statItem">0</div>
+          <div class="sub">jenis item tercatat</div>
+        </div>
+        <div class="card" style="border-left-color:#f59e0b">
+          <div class="label">Total Jumlah</div>
+          <div class="value" id="statJumlah">0</div>
+          <div class="sub">unit keseluruhan</div>
+        </div>
+        <div class="card" style="border-left-color:#8b5cf6">
+          <div class="label">Instansi Terlibat</div>
+          <div class="value" id="statInstansi">0</div>
+          <div class="sub">asal pengirim</div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-box">
+          <h3>Nilai Transaksi per Asal Instansi</h3>
+          <canvas id="chartBar"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Proporsi Instansi</h3>
+          <canvas id="chartPie"></canvas>
+        </div>
+      </div>
+      <div class="chart-box" style="margin-top:20px;height:340px">
+        <h3>Tren Nilai Transaksi Harian</h3>
+        <canvas id="chartLine"></canvas>
+      </div>
+    </section>
+
+    <!-- INPUT -->
+    <section id="page-input" class="page">
+      <div class="panel">
+        <h3>📝 Form Input Data SBBK</h3>
+        <form id="formInput" onsubmit="submitForm(event)">
+          <div class="form-grid">
+            <div class="field">
+              <label>Tanggal Surat *</label>
+              <input type="date" name="tanggal_surat" required />
+            </div>
+            <div class="field">
+              <label>Nomor Surat SBBK *</label>
+              <input type="text" name="nomor_surat" placeholder="001/SBBK/2024" required />
+            </div>
+            <div class="field">
+              <label>Asal Instansi *</label>
+              <select name="asal_instansi" required>
+                <option value="">-- Pilih --</option>
+                <option>Dinas Kabupaten</option>
+                <option>Dinas Provinsi</option>
+                <option>Dinas BKKBN</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Perihal</label>
+              <input type="text" name="perihal" placeholder="Permintaan Obat Rutin" />
+            </div>
+
+            <div class="field full">
+              <label>Nama Obat / BMHP KAB *</label>
+              <input type="text" name="nama_obat" placeholder="cth: Paracetamol 500mg" required />
+            </div>
+
+            <div class="field">
+              <label>Satuan *</label>
+              <input type="text" name="satuan" placeholder="Tablet / Box / Botol" required />
+            </div>
+            <div class="field">
+              <label>Jumlah *</label>
+              <input type="number" name="jumlah" min="0" step="any" value="0" required oninput="hitungNilai()" />
+            </div>
+            <div class="field">
+              <label>Harga Satuan *</label>
+              <input type="number" name="harga_satuan" min="0" step="any" value="0" required oninput="hitungNilai()" />
+            </div>
+            <div class="field">
+              <label>Nilai Transaksi (otomatis)</label>
+              <input type="number" name="nilai_transaksi" readonly style="background:#eef6f0;font-weight:600;color:var(--green-800)" />
+            </div>
+
+            <div class="field">
+              <label>Tanggal Terima *</label>
+              <input type="date" name="tanggal_terima" required />
+            </div>
+            <div class="field">
+              <label>Nama Penerima *</label>
+              <input type="text" name="nama_penerima" placeholder="Nama lengkap" required />
+            </div>
+            <div class="field">
+              <label>Jabatan Penerima</label>
+              <input type="text" name="jabatan_penerima" placeholder="cth: Kepala Gudang Farmasi" />
+            </div>
+
+            <div class="field full">
+              <label>Keterangan</label>
+              <textarea name="keterangan" placeholder="Catatan tambahan..."></textarea>
+            </div>
+          </div>
+
+          <div style="margin-top:20px;display:flex;gap:10px">
+            <button type="submit" class="btn btn-primary" id="btnSubmit">💾 Simpan Data</button>
+            <button type="reset" class="btn btn-ghost">↻ Bersihkan</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- DATA -->
+    <section id="page-data" class="page">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <h3 style="margin:0">📋 Daftar Data SBBK</h3>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="searchData" placeholder="🔍 Cari..." oninput="renderTable()" style="min-width:220px" />
+            <button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>
+            <button class="btn btn-ghost" onclick="loadData()">↻ Refresh</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="tblData">
+            <thead>
+              <tr>
+                <th>No</th><th>Tgl Surat</th><th>No. Surat</th><th>Asal Instansi</th>
+                <th>Perihal</th><th>Nama Obat/BMHP</th><th>Satuan</th><th>Jumlah</th>
+                <th>Harga Satuan</th><th>Nilai Transaksi</th><th>Tgl Terima</th>
+                <th>Penerima</th><th>Jabatan</th><th>Keterangan</th><th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PENGATURAN -->
+    <section id="page-pengaturan" class="page">
+      <div class="panel">
+        <h3>⚙️ Konfigurasi Supabase</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+          Masukkan URL & Anon Key dari project Supabase Anda. Nilai disimpan di <code>localStorage</code> browser.
+        </p>
+        <div class="form-grid">
+          <div class="field full">
+            <label>Supabase URL</label>
+            <input type="text" id="cfgUrl" placeholder="https://xxxxx.supabase.co" />
+          </div>
+          <div class="field full">
+            <label>Supabase Anon Key</label>
+            <input type="text" id="cfgKey" placeholder="eyJhbGciOi..." />
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="btn btn-primary" onclick="saveConfig()">💾 Simpan Konfigurasi</button>
+          <button class="btn btn-ghost" onclick="testConnection()">🔌 Test Koneksi</button>
+        </div>
+        <div id="cfgStatus" style="margin-top:14px;font-size:13px"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =============== CONFIG & INIT =============== */
+let SUPABASE_URL = localStorage.getItem('sb_url') || '';
+let SUPABASE_KEY = localStorage.getItem('sb_key') || '';
+let sb = null;
+let allData = [];
+let chartBar, chartPie, chartLine;
+
+function initSupabase(){
+  if(SUPABASE_URL && SUPABASE_KEY){
+    try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e){ sb = null; }
+  }
+}
+
+/* =============== NAVIGASI =============== */
+document.querySelectorAll('nav a').forEach(a=>{
+  a.addEventListener('click',()=>{
+    document.querySelectorAll('nav a').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    const pg = a.dataset.page;
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+pg).classList.add('active');
+    document.getElementById('pageTitle').textContent = a.textContent.trim().replace(/^\S+\s/,'');
+    document.getElementById('sidebar').classList.remove('open');
+    if(pg==='dashboard') loadDashboard();
+    if(pg==='data') loadData();
+    if(pg==='pengaturan') loadConfigUI();
+  });
+});
+
+/* =============== TOAST =============== */
+function toast(msg, err=false){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (err?' err':'');
+  setTimeout(()=>t.className='toast'+(err?' err':''), 3000);
+}
+
+/* =============== FORM =============== */
+function hitungNilai(){
+  const f = document.getElementById('formInput');
+  const j = parseFloat(f.jumlah.value)||0;
+  const h = parseFloat(f.harga_satuan.value)||0;
+  f.nilai_transaksi.value = (j*h).toFixed(2);
+}
+
+async function submitForm(e){
+  e.preventDefault();
+  if(!sb){ toast('Supabase belum dikonfigurasi!', true); return; }
+  const f = e.target;
+  const data = Object.fromEntries(new FormData(f).entries());
+  data.jumlah = parseFloat(data.jumlah)||0;
+  data.harga_satuan = parseFloat(data.harga_satuan)||0;
+  data.nilai_transaksi = data.jumlah * data.harga_satuan;
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true; btn.innerHTML = '<span class="loading"></span> Menyimpan...';
+
+  const { error } = await sb.from('sbbk_obat').insert([data]);
+  btn.disabled = false; btn.innerHTML = '💾 Simpan Data';
+
+  if(error){ toast('Gagal: '+error.message, true); return; }
+  toast('✅ Data berhasil disimpan!');
+  f.reset();
+  loadData();
+}
+
+/* =============== LOAD DATA =============== */
+async function loadData(){
+  if(!sb){ toast('Supabase belum dikonfigurasi!', true); return; }
+  const { data, error } = await sb.from('sbbk_obat').select('*').order('tanggal_surat',{ascending:false});
+  if(error){ toast('Gagal memuat: '+error.message, true); return; }
+  allData = data || [];
+  renderTable();
+}
+
+/* =============== RENDER TABLE =============== */
+function formatRp(n){
+  return 'Rp ' + (n||0).toLocaleString('id-ID',{maximumFractionDigits:0});
+}
+function formatDate(d){
+  if(!d) return '-';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+}
+function asalBadge(a){
+  const cls = a.includes('Kab')?'kab': a.includes('Prov')?'prov':'bkkbn';
+  return `<span class="badge ${cls}">${a||'-'}</span>`;
+}
+
+function renderTable(){
+  const q = (document.getElementById('searchData').value||'').toLowerCase();
+  const rows = allData.filter(r=>{
+    if(!q) return true;
+    return JSON.stringify(r).toLowerCase().includes(q);
+  });
+  const tb = document.querySelector('#tblData tbody');
+  if(rows.length===0){
+    tb.innerHTML = `<tr><td colspan="15" class="empty">Belum ada data</td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${formatDate(r.tanggal_surat)}</td>
+      <td>${r.nomor_surat||'-'}</td>
+      <td>${asalBadge(r.asal_instansi)}</td>
+      <td>${r.perihal||'-'}</td>
+      <td><b>${r.nama_obat||'-'}</b></td>
+      <td>${r.satuan||'-'}</td>
+      <td>${(r.jumlah||0).toLocaleString('id-ID')}</td>
+      <td>${formatRp(r.harga_satuan)}</td>
+      <td><b style="color:var(--green-800)">${formatRp(r.nilai_transaksi)}</b></td>
+      <td>${formatDate(r.tanggal_terima)}</td>
+      <td>${r.nama_penerima||'-'}</td>
+      <td>${r.jabatan_penerima||'-'}</td>
+      <td>${r.keterangan||'-'}</td>
+      <td><button class="btn btn-danger" onclick="hapusData('${r.id}')">🗑</button></td>
+    </tr>
+  `).join('');
+}
+
+async function hapusData(id){
+  if(!confirm('Hapus data ini?')) return;
+  const { error } = await sb.from('sbbk_obat').delete().eq('id', id);
+  if(error){ toast('Gagal hapus: '+error.message, true); return; }
+  toast('Data dihapus');
+  loadData();
+}
+
+/* =============== EXPORT CSV =============== */
+function exportCSV(){
+  if(allData.length===0){ toast('Tidak ada data', true); return; }
+  const headers = ['tanggal_surat','nomor_surat','asal_instansi','perihal','nama_obat','satuan','jumlah','harga_satuan','nilai_transaksi','tanggal_terima','nama_penerima','jabatan_penerima','keterangan'];
+  const csv = [headers.join(',')].concat(
+    allData.map(r=>headers.map(h=>`"${(r[h]??'').toString().replace(/"/g,'""')}"`).join(','))
+  ).join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'data-sbbk-obat.csv';
+  a.click();
+}
+
+/* =============== DASHBOARD =============== */
+function resetFilter(){
+  document.getElementById('fFrom').value='';
+  document.getElementById('fTo').value='';
+  document.getElementById('fAsal').value='';
+  loadDashboard();
+}
+
+async function loadDashboard(){
+  if(!sb){ toast('Supabase belum dikonfigurasi!', true); return; }
+  const from = document.getElementById('fFrom').value;
+  const to = document.getElementById('fTo').value;
+  const asal = document.getElementById('fAsal').value;
+
+  let q = sb.from('sbbk_obat').select('*');
+  if(from) q = q.gte('tanggal_surat', from);
+  if(to) q = q.lte('tanggal_surat', to);
+  if(asal) q = q.eq('asal_instansi', asal);
+
+  const { data, error } = await q.order('tanggal_surat',{ascending:true});
+  if(error){ toast('Gagal memuat: '+error.message, true); return; }
+
+  const rows = data || [];
+  // Stats
+  const totalNilai = rows.reduce((s,r)=>s+(+r.nilai_transaksi||0),0);
+  const totalJumlah = rows.reduce((s,r)=>s+(+r.jumlah||0),0);
+  const uniqueObat = new Set(rows.map(r=>r.nama_obat)).size;
+  const uniqueInstansi = new Set(rows.map(r=>r.asal_instansi)).size;
+
+  document.getElementById('statTotal').textContent = formatRp(totalNilai);
+  document.getElementById('statTotalSub').textContent = rows.length + ' transaksi';
+  document.getElementById('statItem').textContent = uniqueObat;
+  document.getElementById('statJumlah').textContent = totalJumlah.toLocaleString('id-ID');
+  document.getElementById('statInstansi').textContent = uniqueInstansi;
+
+  // Group by asal
+  const byAsal = {};
+  rows.forEach(r=>{
+    const k = r.asal_instansi || 'Lainnya';
+    byAsal[k] = (byAsal[k]||0) + (+r.nilai_transaksi||0);
+  });
+
+  // Group by tanggal
+  const byDate = {};
+  rows.forEach(r=>{
+    const k = r.tanggal_surat || '-';
+    byDate[k] = (byDate[k]||0) + (+r.nilai_transaksi||0);
+  });
+  const sortedDates = Object.keys(byDate).sort();
+
+  // Render charts
+  if(chartBar) chartBar.destroy();
+  if(chartPie) chartPie.destroy();
+  if(chartLine) chartLine.destroy();
+
+  const greenPalette = ['#2d6a4f','#40916c','#74c69d','#95d5b2'];
+
+  chartBar = new Chart(document.getElementById('chartBar'),{
+    type:'bar',
+    data:{
+      labels:Object.keys(byAsal),
+      datasets:[{ label:'Nilai Transaksi (Rp)', data:Object.values(byAsal),
+        backgroundColor:greenPalette, borderRadius:8 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp '+(v/1000).toFixed(0)+'k' } } }
+    }
+  });
+
+  chartPie = new Chart(document.getElementById('chartPie'),{
+    type:'doughnut',
+    data:{
+      labels:Object.keys(byAsal),
+      datasets:[{ data:Object.values(byAsal), backgroundColor:greenPalette, borderWidth:0 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:11}}} }
+    }
+  });
+
+  chartLine = new Chart(document.getElementById('chartLine'),{
+    type:'line',
+    data:{
+      labels:sortedDates.map(d=>formatDate(d)),
+      datasets:[{
+        label:'Nilai Transaksi', data:sortedDates.map(d=>byDate[d]),
+        borderColor:'#2d6a4f', backgroundColor:'rgba(116,198,157,.25)',
+        fill:true, tension:.35, pointBackgroundColor:'#40916c', pointRadius:4
+      }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp '+(v/1000).toFixed(0)+'k' } } }
+    }
+  });
+}
+
+/* =============== PENGATURAN =============== */
+function loadConfigUI(){
+  document.getElementById('cfgUrl').value = SUPABASE_URL;
+  document.getElementById('cfgKey').value = SUPABASE_KEY;
+}
+function saveConfig(){
+  SUPABASE_URL = document.getElementById('https://aymjtagmudslbvtgaqan.supabase.co').value.trim();
+  SUPABASE_KEY = document.getElementById('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5bWp0YWdtdWRzbGJ2dGdhcWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2NTQzMDksImV4cCI6MjEwNjIzMDMwOX0.vd9RWkCSVP3BIaMHgINhGYdx9c7R9CDvamwkGVdi_TQ').value.trim();
+  localStorage.setItem('sb_url', SUPABASE_URL);
+  localStorage.setItem('sb_key', SUPABASE_KEY);
+  initSupabase();
+  document.getElementById('cfgStatus').innerHTML = '<span style="color:var(--green-700)">✅ Konfigurasi tersimpan. Memuat ulang...</span>';
+  setTimeout(()=>location.reload(), 800);
+}
+async function testConnection(){
+  initSupabase();
+  if(!sb){ document.getElementById('cfgStatus').innerHTML='<span style="color:#b91c1c">❌ Isi URL dan Key terlebih dahulu.</span>'; return; }
+  const { error } = await sb.from('sbbk_obat').select('id').limit(1);
+  if(error) document.getElementById('cfgStatus').innerHTML='<span style="color:#b91c1c">❌ '+error.message+'</span>';
+  else document.getElementById('cfgStatus').innerHTML='<span style="color:var(--green-700)">✅ Koneksi berhasil!</span>';
+}
+
+/* =============== START =============== */
+initSupabase();
+if(sb){ loadDashboard(); }
+else { toast('⚠️ Atur Supabase di menu Pengaturan', true); }
+</script>
+</body>
+</html>
