@@ -6,6 +6,7 @@
 <title>FORM SBBK OBAT</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
   :root{--green-900:#1b4332;--green-800:#2d6a4f;--green-700:#40916c;--green-500:#74c69d;--green-200:#b7e4c7;--green-100:#d8f3dc;--green-50:#f0f7f4;--text:#1f2937;--muted:#6b7280;--white:#fff;--shadow:0 4px 20px rgba(45,106,79,.08)}
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
@@ -48,6 +49,10 @@
   .btn-danger{background:#fee2e2;color:#b91c1c}
   .btn-edit{background:#fef3c7;color:#92400e}
   .btn-edit:hover{background:#fde68a}
+  .btn-excel{background:#1d6f42;color:#fff}
+  .btn-excel:hover{background:#155d34}
+  .btn-print{background:#1e40af;color:#fff}
+  .btn-print:hover{background:#1e3a8a}
   .btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
   .chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px}
   @media(max-width:900px){.chart-grid{grid-template-columns:1fr}}
@@ -104,33 +109,117 @@
   .input-prefix{position:relative}
   .input-prefix::before{content:'Rp';position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;font-weight:600;pointer-events:none}
   .input-prefix input{padding-left:38px}
+  .filter-inline{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:14px;background:var(--green-50);border-radius:12px;margin-bottom:14px}
+  .filter-inline .field{min-width:130px;flex:0 1 auto}
+
+  /* ============ PRINT AREA (hidden di layar) ============ */
+  #printArea{display:none}
+
+  /* ============ @MEDIA PRINT ============ */
+  @page{
+    size: A4 landscape;
+    margin: 10mm 8mm 12mm 8mm;
+  }
+  @media print{
+    body{background:#fff !important}
+    .app, .modal-overlay, .toast{display:none !important}
+    #printArea{
+      display:block !important;
+      width:100%;
+      color:#000;
+      font-family:'Segoe UI',Tahoma,Arial,sans-serif;
+    }
+    #printArea .print-title{
+      text-align:center;
+      font-size:16pt;
+      font-weight:700;
+      color:#1B4332;
+      letter-spacing:.5px;
+      margin-bottom:2mm;
+    }
+    #printArea .print-sub{
+      text-align:center;
+      font-size:10pt;
+      color:#333;
+      margin-bottom:1mm;
+    }
+    #printArea .print-meta{
+      display:flex;
+      justify-content:space-between;
+      font-size:8.5pt;
+      color:#444;
+      margin-bottom:3mm;
+      padding-bottom:1mm;
+      border-bottom:1px solid #999;
+    }
+    #printArea table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:7.5pt;
+      min-width:auto;
+    }
+    #printArea thead{
+      display:table-header-group;   /* <<< HEADER REPEAT DI TIAP HALAMAN */
+    }
+    #printArea tfoot{
+      display:table-footer-group;
+    }
+    #printArea th{
+      background:#D8F3DC !important;
+      color:#1B4332 !important;
+      border:0.5pt solid #999;
+      padding:3pt 4pt;
+      text-align:center;
+      font-weight:700;
+      font-size:7.5pt;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    #printArea td{
+      border:0.5pt solid #999;
+      padding:2.5pt 4pt;
+      vertical-align:top;
+      font-size:7.5pt;
+      color:#000;
+    }
+    #printArea tbody tr:nth-child(even) td{
+      background:#F7FBF8;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    #printArea td.num{
+      text-align:right;
+      font-variant-numeric:tabular-nums;
+      white-space:nowrap;
+    }
+    #printArea td.center{ text-align:center; white-space:nowrap; }
+    #printArea .row-total td{
+      background:#D8F3DC !important;
+      font-weight:700;
+      color:#1B4332;
+      border-top:1.2pt solid #1B4332;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    #printArea .print-footer{
+      margin-top:3mm;
+      font-size:7.5pt;
+      color:#555;
+      text-align:right;
+    }
+  }
 </style>
 </head>
 <body>
 
-<!-- DATALIST SATUAN (global) -->
 <datalist id="satuanList">
-  <option value="TAB"></option>
-  <option value="TABLET"></option>
-  <option value="KAPSUL"></option>
-  <option value="VIAL"></option>
-  <option value="AMPUL"></option>
-  <option value="PCS"></option>
-  <option value="BOX"></option>
-  <option value="BTL"></option>
-  <option value="BOTOL"></option>
-  <option value="SACHET"></option>
-  <option value="TUBE"></option>
-  <option value="PAKET"></option>
-  <option value="KIT"></option>
-  <option value="SET"></option>
-  <option value="TEST"></option>
-  <option value="UNIT"></option>
-  <option value="LITER"></option>
-  <option value="ML"></option>
-  <option value="GRAM"></option>
-  <option value="MG"></option>
-  <option value="LEMBAR"></option>
+  <option value="TAB"></option><option value="TABLET"></option><option value="KAPSUL"></option>
+  <option value="VIAL"></option><option value="AMPUL"></option><option value="PCS"></option>
+  <option value="BOX"></option><option value="BTL"></option><option value="BOTOL"></option>
+  <option value="SACHET"></option><option value="TUBE"></option><option value="PAKET"></option>
+  <option value="KIT"></option><option value="SET"></option><option value="TEST"></option>
+  <option value="UNIT"></option><option value="LITER"></option><option value="ML"></option>
+  <option value="GRAM"></option><option value="MG"></option><option value="LEMBAR"></option>
   <option value="ROLL"></option>
 </datalist>
 
@@ -146,7 +235,7 @@
       <a data-page="data">📋 Data SBBK</a>
       <a data-page="master">💊 Master Barang</a>
     </nav>
-    <footer>© 2024 SBBK Obat<br>v2.4</footer>
+    <footer>© 2024 SBBK Obat<br>v2.6</footer>
   </aside>
 
   <main>
@@ -212,36 +301,24 @@
               </select>
             </div>
             <div class="field"><label>Perihal</label><input type="text" name="perihal" placeholder="Permintaan Obat Rutin" /></div>
-
             <div class="field full" style="position:relative">
               <label>Nama Obat / BMHP KAB *</label>
               <input type="text" name="nama_obat" id="inputObat" placeholder="Ketik untuk mencari..." required oninput="onObatInput(this.value)" onfocus="onObatInput(this.value)" />
               <div class="ac-list" id="acList"></div>
             </div>
-
-            <div class="field">
-              <label>Satuan *</label>
-              <input type="text" name="satuan" id="inputSatuan" list="satuanList" placeholder="Pilih / ketik satuan" required />
-            </div>
+            <div class="field"><label>Satuan *</label><input type="text" name="satuan" id="inputSatuan" list="satuanList" placeholder="Pilih / ketik satuan" required /></div>
             <div class="field"><label>Jumlah *</label><input type="number" name="jumlah" id="inputJumlah" min="0" step="any" value="0" required oninput="updateHitungNilai()" /></div>
-
             <div class="field">
               <label>Harga Satuan *</label>
-              <div class="input-prefix">
-                <input type="text" id="inputHargaDisplay" class="input-rupiah" placeholder="0" required oninput="onHargaInput(this)" />
-              </div>
+              <div class="input-prefix"><input type="text" id="inputHargaDisplay" class="input-rupiah" placeholder="0" required oninput="onHargaInput(this)" /></div>
               <input type="hidden" name="harga_satuan" id="inputHarga" />
               <div class="hint-box" id="hintHarga"></div>
             </div>
-
             <div class="field">
               <label>Nilai Transaksi (otomatis)</label>
-              <div class="input-prefix">
-                <input type="text" id="inputNilaiDisplay" class="input-readonly input-rupiah" placeholder="0" readonly />
-              </div>
+              <div class="input-prefix"><input type="text" id="inputNilaiDisplay" class="input-readonly input-rupiah" placeholder="0" readonly /></div>
               <input type="hidden" name="nilai_transaksi" id="inputNilai" />
             </div>
-
             <div class="field"><label>Tanggal Terima *</label><input type="date" name="tanggal_terima" required /></div>
             <div class="field"><label>Tanggal ED</label><input type="date" name="tanggal_ed" /></div>
             <div class="field"><label>Nama Penerima *</label><input type="text" name="nama_penerima" placeholder="Nama lengkap" required /></div>
@@ -269,11 +346,21 @@
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
           <h3 style="margin:0">📋 Daftar Data SBBK</h3>
           <div style="display:flex;gap:8px">
-            <input type="text" id="searchData" placeholder="🔍 Cari..." oninput="onSearchData()" style="min-width:220px" />
-            <button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>
+            <button class="btn btn-print" onclick="printPreview()">🖨️ Print Preview</button>
+            <button class="btn btn-excel" onclick="exportExcel()">📊 Export Excel</button>
             <button class="btn btn-ghost" onclick="loadData()">↻ Refresh</button>
           </div>
         </div>
+
+        <div class="filter-inline">
+          <div class="field" style="min-width:150px"><label>Dari Tanggal</label><input type="date" id="dataFrom" onchange="onFilterData()" /></div>
+          <div class="field" style="min-width:150px"><label>Sampai Tanggal</label><input type="date" id="dataTo" onchange="onFilterData()" /></div>
+          <div class="field" style="flex:1;min-width:200px"><label>Cari (nomor surat, nama obat, penerima, dll)</label><input type="text" id="searchData" placeholder="🔍 Cari..." oninput="onSearchData()" /></div>
+          <button class="btn btn-ghost" onclick="resetDataFilter()">↻ Reset Filter</button>
+        </div>
+
+        <div id="dataInfo" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
+
         <div class="table-wrap">
           <table id="tblData">
             <thead><tr>
@@ -384,6 +471,9 @@
   </div>
 </div>
 
+<!-- PRINT AREA (hidden, hanya tampil saat print) -->
+<div id="printArea"></div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -391,7 +481,7 @@
 const SUPABASE_URL = 'https://yceufetiroigondusbah.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZXVmZXRpcm9pZ29uZHVzYmFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTQ3NjksImV4cCI6MjEwNjk5MDc2OX0.5IMvPrSsVwFxRlTe8b77N9y9ecVhPMyNQf5Em-dPWIc';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let allData = [], masterData = [];
+let allData = [], masterData = [], filteredData = [];
 let chartBar, chartPie, chartLine;
 const ROWS_PER_PAGE = 10;
 let dataPage = 1, masterPage = 1, editingMasterId = null;
@@ -445,8 +535,6 @@ function onHargaInputEdit(el){
   el.value = formatted;
   updateHitungNilaiEdit();
 }
-
-/* =============== HITUNG NILAI =============== */
 function updateHitungNilai(){
   const j = parseFloat(document.getElementById('inputJumlah').value) || 0;
   const h = parseRupiah(document.getElementById('inputHargaDisplay').value);
@@ -495,6 +583,7 @@ function toast(msg, err=false){
 /* =============== UTIL =============== */
 function formatRp(n){ return 'Rp ' + (parseFloat(n)||0).toLocaleString('id-ID',{maximumFractionDigits:0}); }
 function formatDate(d){ if(!d) return '-'; return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
+function formatDateISO(d){ if(!d) return ''; return d.toString().slice(0,10); }
 function asalBadge(a){ if(!a) return '-'; const cls = a.includes('Kab')?'kab': a.includes('Prov')?'prov': a.includes('BKKBN')?'bkkbn':'rsud'; return `<span class="badge ${cls}">${a}</span>`; }
 function normalizeSatuan(s){ if(!s) return ''; const u = s.toString().trim().toUpperCase(); return u === 'TABLET' ? 'TAB' : u; }
 function edBadge(ed){
@@ -508,6 +597,7 @@ function edBadge(ed){
 }
 function escapeAttr(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 function dateToInput(d){ return d ? d.toString().slice(0,10) : ''; }
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* =============== PAGINATION =============== */
 function renderPagination(containerId, currentPage, totalItems, onPage){
@@ -611,7 +701,6 @@ function resetHint(){ document.getElementById('hintHarga').classList.remove('sho
 /* =============== SUBMIT INPUT =============== */
 async function submitForm(e){
   e.preventDefault();
-  // Pastikan hidden input ter-update
   updateHitungNilai();
   const f = e.target;
   const data = Object.fromEntries(new FormData(f).entries());
@@ -634,22 +723,58 @@ async function submitForm(e){
 
 /* =============== LOAD DATA =============== */
 async function loadData(){
-  const { data, error } = await sb.from('sbbk_obat').select('*').order('tanggal_surat',{ascending:false}).limit(2000);
+  const { data, error } = await sb.from('sbbk_obat').select('*').order('tanggal_surat',{ascending:false}).limit(5000);
   if(error){ toast('Gagal memuat: '+error.message, true); return; }
-  allData = data || []; dataPage = 1; renderTable();
+  allData = data || [];
+  dataPage = 1;
+  applyDataFilter();
 }
-function onSearchData(){ dataPage = 1; renderTable(); }
+
+function onFilterData(){ dataPage = 1; applyDataFilter(); }
+function onSearchData(){ dataPage = 1; applyDataFilter(); }
+function resetDataFilter(){
+  document.getElementById('dataFrom').value = '';
+  document.getElementById('dataTo').value = '';
+  document.getElementById('searchData').value = '';
+  dataPage = 1;
+  applyDataFilter();
+}
+
+function applyDataFilter(){
+  const from = document.getElementById('dataFrom').value;
+  const to = document.getElementById('dataTo').value;
+  const q = (document.getElementById('searchData').value || '').toLowerCase();
+
+  filteredData = allData.filter(r => {
+    if(from && (!r.tanggal_surat || r.tanggal_surat < from)) return false;
+    if(to && (!r.tanggal_surat || r.tanggal_surat > to)) return false;
+    if(q && !JSON.stringify(r).toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const info = document.getElementById('dataInfo');
+  let infoText = `Menampilkan <b>${filteredData.length}</b> dari <b>${allData.length}</b> total data`;
+  if(from || to){
+    infoText += ' | Periode: ';
+    infoText += from ? `<b>${formatDate(from)}</b>` : 'awal';
+    infoText += ' s/d ';
+    infoText += to ? `<b>${formatDate(to)}</b>` : 'sekarang';
+  }
+  if(q) infoText += ` | Pencarian: "<b>${q}</b>"`;
+  info.innerHTML = infoText;
+
+  renderTable();
+}
 
 function renderTable(){
-  const q = (document.getElementById('searchData').value||'').toLowerCase();
-  const rows = allData.filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
   const tb = document.querySelector('#tblData tbody');
-  if(rows.length===0){
+  if(filteredData.length === 0){
     tb.innerHTML = `<tr><td colspan="15" class="empty">Belum ada data</td></tr>`;
-    renderPagination('pagData', 1, 0, 'gotoDataPage'); return;
+    renderPagination('pagData', 1, 0, 'gotoDataPage');
+    return;
   }
   const start = (dataPage - 1) * ROWS_PER_PAGE;
-  const pageRows = rows.slice(start, start + ROWS_PER_PAGE);
+  const pageRows = filteredData.slice(start, start + ROWS_PER_PAGE);
 
   tb.innerHTML = pageRows.map((r,i)=>`
     <tr>
@@ -672,7 +797,7 @@ function renderTable(){
         <button class="btn btn-danger btn-sm" onclick="hapusData('${r.id}')" title="Hapus">🗑</button>
       </td>
     </tr>`).join('');
-  renderPagination('pagData', dataPage, rows.length, 'gotoDataPage');
+  renderPagination('pagData', dataPage, filteredData.length, 'gotoDataPage');
 }
 function gotoDataPage(p){ dataPage = p; renderTable(); window.scrollTo({top:0,behavior:'smooth'}); }
 
@@ -683,6 +808,228 @@ async function hapusData(id){
   const { error } = await sb.from('sbbk_obat').delete().eq('id', id);
   if(error){ toast('Gagal hapus: '+error.message, true); return; }
   toast('Data dihapus'); loadData();
+}
+
+/* =============== PRINT PREVIEW =============== */
+function printPreview(){
+  if(filteredData.length === 0){ toast('Tidak ada data untuk diprint', true); return; }
+
+  const from = document.getElementById('dataFrom').value;
+  const to = document.getElementById('dataTo').value;
+
+  // Bangun HTML print area
+  let periode = '';
+  if(from && to) periode = `${formatDate(from)} s/d ${formatDate(to)}`;
+  else if(from) periode = `Sejak ${formatDate(from)}`;
+  else if(to) periode = `Sampai ${formatDate(to)}`;
+  else periode = 'Seluruh Periode';
+
+  const now = new Date();
+  const tglCetak = now.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'}) + ' ' +
+                   now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+
+  let totalJumlah = 0, totalNilai = 0;
+  const rowsHtml = filteredData.map((r, i) => {
+    const jml = parseFloat(r.jumlah) || 0;
+    const nilai = parseFloat(r.nilai_transaksi) || 0;
+    totalJumlah += jml;
+    totalNilai += nilai;
+    return `<tr>
+      <td class="center">${i + 1}</td>
+      <td class="center">${formatDateISO(r.tanggal_surat) || '-'}</td>
+      <td>${escapeHtml(r.nomor_surat || '-')}</td>
+      <td>${escapeHtml(r.asal_instansi || '-')}</td>
+      <td>${escapeHtml(r.perihal || '-')}</td>
+      <td>${escapeHtml(r.nama_obat || '-')}</td>
+      <td class="center">${escapeHtml(r.satuan || '-')}</td>
+      <td class="num">${jml.toLocaleString('id-ID')}</td>
+      <td class="num">${(parseFloat(r.harga_satuan)||0).toLocaleString('id-ID')}</td>
+      <td class="num"><b>${nilai.toLocaleString('id-ID')}</b></td>
+      <td class="center">${formatDateISO(r.tanggal_terima) || '-'}</td>
+      <td class="center">${formatDateISO(r.tanggal_ed) || '-'}</td>
+      <td class="center">${escapeHtml(r.kategori || '-')}</td>
+      <td>${escapeHtml(r.nama_penerima || '-')}</td>
+      <td>${escapeHtml(r.jabatan_penerima || '-')}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('printArea').innerHTML = `
+    <div class="print-title">REKAPAN SBBK DINAS KESEHATAN</div>
+    <div class="print-sub">Periode: ${periode}</div>
+    <div class="print-meta">
+      <span>Total Baris: <b>${filteredData.length}</b></span>
+      <span>Dicetak: ${tglCetak}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:3%">No</th>
+          <th style="width:6%">Tgl Surat</th>
+          <th style="width:11%">No. Surat SBBK</th>
+          <th style="width:7%">Asal Instansi</th>
+          <th style="width:10%">Perihal</th>
+          <th style="width:13%">Nama Obat/BMHP</th>
+          <th style="width:4%">Sat.</th>
+          <th style="width:5%">Jumlah</th>
+          <th style="width:7%">Harga</th>
+          <th style="width:8%">Nilai</th>
+          <th style="width:6%">Tgl Terima</th>
+          <th style="width:6%">Tgl ED</th>
+          <th style="width:6%">Kategori</th>
+          <th style="width:8%">Penerima</th>
+          <th style="width:8%">Jabatan</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+      <tfoot>
+        <tr class="row-total">
+          <td colspan="7" class="center">TOTAL</td>
+          <td class="num">${totalJumlah.toLocaleString('id-ID')}</td>
+          <td></td>
+          <td class="num">${totalNilai.toLocaleString('id-ID')}</td>
+          <td colspan="5"></td>
+        </tr>
+      </tfoot>
+    </table>
+    <div class="print-footer">Halaman dicetak otomatis dari FORM SBBK OBAT</div>
+  `;
+
+  // Trigger print dialog
+  setTimeout(() => window.print(), 200);
+  toast(`🖨️ Membuka print preview (${filteredData.length} baris)`);
+}
+
+/* =============== EXPORT EXCEL (.XLSX) =============== */
+function exportExcel(){
+  if(filteredData.length === 0){ toast('Tidak ada data untuk diexport', true); return; }
+
+  const from = document.getElementById('dataFrom').value;
+  const to = document.getElementById('dataTo').value;
+
+  const headers = [
+    'No','Tanggal Surat','Nomor Surat SBBK','Asal Instansi','Perihal',
+    'Nama Obat/BMHP KAB','Satuan','Jumlah','Harga Satuan','Nilai Transaksi',
+    'Tanggal Terima','Tanggal ED','Kategori','Nama Penerima','Jabatan Penerima','Keterangan'
+  ];
+
+  const aoa = [];
+  aoa.push(['REKAPAN SBBK DINAS KESEHATAN']);
+  aoa.push([`Periode: ${from ? formatDate(from) : 'AWAL'} s/d ${to ? formatDate(to) : 'SEKARANG'}`]);
+  aoa.push([]);
+  aoa.push(headers);
+
+  const HEADER_ROW = 3;
+  filteredData.forEach((r, i) => {
+    aoa.push([
+      i + 1,
+      formatDateISO(r.tanggal_surat),
+      r.nomor_surat || '',
+      r.asal_instansi || '',
+      r.perihal || '',
+      r.nama_obat || '',
+      r.satuan || '',
+      parseFloat(r.jumlah) || 0,
+      parseFloat(r.harga_satuan) || 0,
+      parseFloat(r.nilai_transaksi) || 0,
+      formatDateISO(r.tanggal_terima),
+      formatDateISO(r.tanggal_ed),
+      r.kategori || '',
+      r.nama_penerima || '',
+      r.jabatan_penerima || '',
+      r.keterangan || ''
+    ]);
+  });
+
+  const totalJumlah = filteredData.reduce((s,r)=>s+(parseFloat(r.jumlah)||0), 0);
+  const totalNilai = filteredData.reduce((s,r)=>s+(parseFloat(r.nilai_transaksi)||0), 0);
+  const totalRowIdx = aoa.length;
+  const totalRow = new Array(headers.length).fill('');
+  totalRow[2] = 'TOTAL';
+  totalRow[7] = totalJumlah;
+  totalRow[9] = totalNilai;
+  aoa.push(totalRow);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } }
+  ];
+
+  ws['!cols'] = [
+    { wch: 5 },  { wch: 13 }, { wch: 28 }, { wch: 16 }, { wch: 26 },
+    { wch: 32 }, { wch: 8 },  { wch: 10 }, { wch: 14 }, { wch: 16 },
+    { wch: 13 }, { wch: 13 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 22 }
+  ];
+
+  const border = {
+    top: { style: 'thin', color: { rgb: 'B7E4C7' } },
+    bottom: { style: 'thin', color: { rgb: 'B7E4C7' } },
+    left: { style: 'thin', color: { rgb: 'B7E4C7' } },
+    right: { style: 'thin', color: { rgb: 'B7E4C7' } }
+  };
+
+  const titleCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
+  if(ws[titleCell]) ws[titleCell].s = { font: { bold: true, sz: 16, color: { rgb: '1B4332' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+  const periodCell = XLSX.utils.encode_cell({ r: 1, c: 0 });
+  if(ws[periodCell]) ws[periodCell].s = { font: { bold: true, sz: 11, color: { rgb: '40916C' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+
+  headers.forEach((_, i) => {
+    const cell = XLSX.utils.encode_cell({ r: HEADER_ROW, c: i });
+    if(ws[cell]) ws[cell].s = {
+      font: { bold: true, sz: 11, color: { rgb: '1B4332' } },
+      fill: { fgColor: { rgb: 'D8F3DC' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: border
+    };
+  });
+
+  for(let r = HEADER_ROW + 1; r < aoa.length; r++){
+    for(let c = 0; c < headers.length; c++){
+      const cell = XLSX.utils.encode_cell({ r, c });
+      if(!ws[cell]) ws[cell] = { t: 's', v: '' };
+      const isNumber = [7, 8, 9].includes(c);
+      ws[cell].s = {
+        alignment: { horizontal: isNumber ? 'right' : 'left', vertical: 'center', wrapText: false },
+        border: border,
+        font: { sz: 10 }
+      };
+      if(isNumber && typeof ws[cell].v === 'number'){
+        ws[cell].z = '#,##0';
+        ws[cell].t = 'n';
+      }
+    }
+  }
+  for(let c = 0; c < headers.length; c++){
+    const cell = XLSX.utils.encode_cell({ r: totalRowIdx, c });
+    if(ws[cell]){
+      ws[cell].s = {
+        font: { bold: true, sz: 11, color: { rgb: '1B4332' } },
+        fill: { fgColor: { rgb: 'F0F7F4' } },
+        alignment: { horizontal: [7,9].includes(c) ? 'right' : 'left', vertical: 'center' },
+        border: border
+      };
+      if([7,9].includes(c) && typeof ws[cell].v === 'number') ws[cell].z = '#,##0';
+    }
+  }
+
+  ws['!pageSetup'] = { orientation: 'landscape', paperSize: 9, fitToWidth: 1, fitToHeight: 0, scale: 100, horizontalCentered: true };
+  ws['!margins'] = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+  ws['!printHeader'] = [4, 4];
+  ws['!freeze'] = { xSplit: 0, ySplit: 4, topLeftCell: 'A5', activePane: 'bottomLeft' };
+
+  const wb = XLSX.utils.book_new();
+  wb.Props = { Title: 'Rekapan SBBK Dinas Kesehatan', Subject: 'SBBK', Author: 'Form SBBK Obat', CreatedDate: new Date() };
+  XLSX.utils.book_append_sheet(wb, ws, 'Rekapan SBBK');
+
+  const today = new Date().toISOString().slice(0,10);
+  let fname = `Rekapan_SBBK_${today}`;
+  if(from && to) fname = `Rekapan_SBBK_${from}_sd_${to}`;
+  else if(from) fname = `Rekapan_SBBK_dari_${from}`;
+  else if(to) fname = `Rekapan_SBBK_sampai_${to}`;
+  XLSX.writeFile(wb, fname + '.xlsx');
+
+  toast(`✅ Export berhasil (${filteredData.length} baris)`);
 }
 
 /* =============== MODAL EDIT =============== */
@@ -748,15 +1095,6 @@ document.getElementById('editModal').addEventListener('click', e => { if(e.targe
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && document.getElementById('editModal').classList.contains('show')) closeEditModal();
 });
-
-/* =============== EXPORT CSV =============== */
-function exportCSV(){
-  if(allData.length===0){ toast('Tidak ada data', true); return; }
-  const h = ['tanggal_surat','nomor_surat','asal_instansi','perihal','nama_obat','satuan','jumlah','harga_satuan','nilai_transaksi','tanggal_terima','nama_penerima','jabatan_penerima','keterangan','tanggal_ed','kategori','sumber_data'];
-  const csv = [h.join(',')].concat(allData.map(r=>h.map(k=>`"${(r[k]??'').toString().replace(/"/g,'""')}"`).join(','))).join('\n');
-  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'data-sbbk-obat.csv'; a.click();
-}
 
 /* =============== DASHBOARD =============== */
 function resetFilter(){
