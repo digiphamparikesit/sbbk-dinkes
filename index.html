@@ -7,12 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  :root{
-    --green-900:#1b4332; --green-800:#2d6a4f; --green-700:#40916c;
-    --green-500:#74c69d; --green-200:#b7e4c7; --green-100:#d8f3dc; --green-50:#f0f7f4;
-    --text:#1f2937; --muted:#6b7280; --white:#fff;
-    --shadow:0 4px 20px rgba(45,106,79,.08);
-  }
+  :root{--green-900:#1b4332;--green-800:#2d6a4f;--green-700:#40916c;--green-500:#74c69d;--green-200:#b7e4c7;--green-100:#d8f3dc;--green-50:#f0f7f4;--text:#1f2937;--muted:#6b7280;--white:#fff;--shadow:0 4px 20px rgba(45,106,79,.08)}
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
   body{background:var(--green-50);color:var(--text);min-height:100vh}
   .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
@@ -43,6 +38,8 @@
   input,select,textarea{padding:10px 12px;border:1.5px solid #e2e8e4;border-radius:10px;font-size:13px;background:#fbfdfb;transition:.2s;outline:none;color:var(--text);width:100%}
   input:focus,select:focus,textarea:focus{border-color:var(--green-500);background:#fff;box-shadow:0 0 0 3px rgba(116,198,157,.2)}
   textarea{resize:vertical;min-height:60px}
+  .input-rupiah{font-variant-numeric:tabular-nums;letter-spacing:.3px}
+  .input-readonly{background:#eef6f0 !important;font-weight:600;color:var(--green-800)}
   .btn{padding:10px 18px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:6px}
   .btn-primary{background:var(--green-700);color:#fff}
   .btn-primary:hover{background:var(--green-800);transform:translateY(-1px)}
@@ -72,15 +69,13 @@
   .badge.ed-soon{background:#fef3c7;color:#92400e}
   .badge.ed-expired{background:#fee2e2;color:#b91c1c}
   .badge.ed-safe{background:#dcfce7;color:#166534}
-  .page{display:none}
-  .page.active{display:block}
+  .page{display:none}.page.active{display:block}
   .toast{position:fixed;bottom:24px;right:24px;background:var(--green-800);color:#fff;padding:14px 22px;border-radius:12px;font-size:13px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.2);transform:translateY(100px);opacity:0;transition:.3s;z-index:9999}
-  .toast.show{transform:translateY(0);opacity:1}
-  .toast.err{background:#b91c1c}
+  .toast.show{transform:translateY(0);opacity:1}.toast.err{background:#b91c1c}
   .empty{text-align:center;padding:40px;color:var(--muted);font-size:14px}
   .loading{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  @media(max-width:768px){.app{grid-template-columns:1fr}.sidebar{position:fixed;left:-260px;z-index:100;transition:.3s}.sidebar.open{left:0}.menu-toggle{display:block !important}main{padding:20px}}
+  @media(max-width:768px){.app{grid-template-columns:1fr}.sidebar{position:fixed;left:-260px;z-index:100;transition:.3s}.sidebar.open{left:0}.menu-toggle{display:block!important}main{padding:20px}}
   .menu-toggle{display:none;background:var(--green-700);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:18px}
   .ac-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--green-500);border-radius:10px;max-height:240px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;margin-top:4px}
   .ac-list.show{display:block}
@@ -97,7 +92,6 @@
   .pagination button:hover:not(:disabled){background:var(--green-100);border-color:var(--green-500)}
   .pagination button.active{background:var(--green-700);color:#fff;border-color:var(--green-700)}
   .pagination button:disabled{opacity:.4;cursor:not-allowed}
-  /* MODAL */
   .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:30px 20px;overflow-y:auto}
   .modal-overlay.show{display:flex}
   .modal{background:#fff;border-radius:16px;padding:24px;max-width:960px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:modalIn .25s ease}
@@ -107,9 +101,39 @@
   .modal-head .close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:0 8px}
   .modal-head .close:hover{color:#b91c1c}
   .modal-foot{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid #eef3f0;justify-content:flex-end}
+  .input-prefix{position:relative}
+  .input-prefix::before{content:'Rp';position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;font-weight:600;pointer-events:none}
+  .input-prefix input{padding-left:38px}
 </style>
 </head>
 <body>
+
+<!-- DATALIST SATUAN (global) -->
+<datalist id="satuanList">
+  <option value="TAB"></option>
+  <option value="TABLET"></option>
+  <option value="KAPSUL"></option>
+  <option value="VIAL"></option>
+  <option value="AMPUL"></option>
+  <option value="PCS"></option>
+  <option value="BOX"></option>
+  <option value="BTL"></option>
+  <option value="BOTOL"></option>
+  <option value="SACHET"></option>
+  <option value="TUBE"></option>
+  <option value="PAKET"></option>
+  <option value="KIT"></option>
+  <option value="SET"></option>
+  <option value="TEST"></option>
+  <option value="UNIT"></option>
+  <option value="LITER"></option>
+  <option value="ML"></option>
+  <option value="GRAM"></option>
+  <option value="MG"></option>
+  <option value="LEMBAR"></option>
+  <option value="ROLL"></option>
+</datalist>
+
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
@@ -122,7 +146,7 @@
       <a data-page="data">📋 Data SBBK</a>
       <a data-page="master">💊 Master Barang</a>
     </nav>
-    <footer>© 2024 SBBK Obat<br>v2.3</footer>
+    <footer>© 2024 SBBK Obat<br>v2.4</footer>
   </aside>
 
   <main>
@@ -144,10 +168,8 @@
           <div class="field"><label>Asal Instansi</label>
             <select id="fAsal">
               <option value="">Semua Instansi</option>
-              <option>Dinkes Kabupaten</option>
-              <option>Dinkes Provinsi</option>
-              <option>Dinas BKKBN</option>
-              <option>RSUD AWS</option>
+              <option>Dinkes Kabupaten</option><option>Dinkes Provinsi</option>
+              <option>Dinas BKKBN</option><option>RSUD AWS</option>
             </select>
           </div>
           <div class="field"><label>Kategori</label>
@@ -190,17 +212,36 @@
               </select>
             </div>
             <div class="field"><label>Perihal</label><input type="text" name="perihal" placeholder="Permintaan Obat Rutin" /></div>
+
             <div class="field full" style="position:relative">
               <label>Nama Obat / BMHP KAB *</label>
               <input type="text" name="nama_obat" id="inputObat" placeholder="Ketik untuk mencari..." required oninput="onObatInput(this.value)" onfocus="onObatInput(this.value)" />
               <div class="ac-list" id="acList"></div>
             </div>
-            <div class="field"><label>Satuan *</label><input type="text" name="satuan" id="inputSatuan" placeholder="Tablet / Vial" required /></div>
-            <div class="field"><label>Jumlah *</label><input type="number" name="jumlah" min="0" step="any" value="0" required oninput="hitungNilai()" /></div>
-            <div class="field"><label>Harga Satuan *</label><input type="number" name="harga_satuan" id="inputHarga" min="0" step="any" value="0" required oninput="hitungNilai()" />
+
+            <div class="field">
+              <label>Satuan *</label>
+              <input type="text" name="satuan" id="inputSatuan" list="satuanList" placeholder="Pilih / ketik satuan" required />
+            </div>
+            <div class="field"><label>Jumlah *</label><input type="number" name="jumlah" id="inputJumlah" min="0" step="any" value="0" required oninput="updateHitungNilai()" /></div>
+
+            <div class="field">
+              <label>Harga Satuan *</label>
+              <div class="input-prefix">
+                <input type="text" id="inputHargaDisplay" class="input-rupiah" placeholder="0" required oninput="onHargaInput(this)" />
+              </div>
+              <input type="hidden" name="harga_satuan" id="inputHarga" />
               <div class="hint-box" id="hintHarga"></div>
             </div>
-            <div class="field"><label>Nilai Transaksi (otomatis)</label><input type="number" name="nilai_transaksi" readonly style="background:#eef6f0;font-weight:600;color:var(--green-800)" /></div>
+
+            <div class="field">
+              <label>Nilai Transaksi (otomatis)</label>
+              <div class="input-prefix">
+                <input type="text" id="inputNilaiDisplay" class="input-readonly input-rupiah" placeholder="0" readonly />
+              </div>
+              <input type="hidden" name="nilai_transaksi" id="inputNilai" />
+            </div>
+
             <div class="field"><label>Tanggal Terima *</label><input type="date" name="tanggal_terima" required /></div>
             <div class="field"><label>Tanggal ED</label><input type="date" name="tanggal_ed" /></div>
             <div class="field"><label>Nama Penerima *</label><input type="text" name="nama_penerima" placeholder="Nama lengkap" required /></div>
@@ -216,7 +257,7 @@
           </div>
           <div style="margin-top:20px;display:flex;gap:10px">
             <button type="submit" class="btn btn-primary" id="btnSubmit">💾 Simpan Data</button>
-            <button type="reset" class="btn btn-ghost" onclick="resetHint()">↻ Bersihkan</button>
+            <button type="reset" class="btn btn-ghost" onclick="resetHint(); resetHitung()">↻ Bersihkan</button>
           </div>
         </form>
       </div>
@@ -235,13 +276,11 @@
         </div>
         <div class="table-wrap">
           <table id="tblData">
-            <thead>
-              <tr>
-                <th>No</th><th>Tgl Surat</th><th>No. Surat</th><th>Asal</th><th>Perihal</th>
-                <th>Nama Obat</th><th>Satuan</th><th>Jumlah</th><th>Harga</th><th>Nilai</th>
-                <th>Tgl Terima</th><th>ED</th><th>Kategori</th><th>Penerima</th><th>Aksi</th>
-              </tr>
-            </thead>
+            <thead><tr>
+              <th>No</th><th>Tgl Surat</th><th>No. Surat</th><th>Asal</th><th>Perihal</th>
+              <th>Nama Obat</th><th>Satuan</th><th>Jumlah</th><th>Harga</th><th>Nilai</th>
+              <th>Tgl Terima</th><th>ED</th><th>Kategori</th><th>Penerima</th><th>Aksi</th>
+            </tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -263,7 +302,7 @@
           <h4 id="masterFormTitle" style="font-size:13px;color:var(--green-800);margin-bottom:12px">➕ Tambah Barang Baru</h4>
           <div class="form-grid">
             <div class="field"><label>Nama Obat *</label><input id="mNama" /></div>
-            <div class="field"><label>Satuan Default</label><input id="mSatuan" placeholder="TAB/VIAL/PCS" /></div>
+            <div class="field"><label>Satuan Default</label><input id="mSatuan" list="satuanList" placeholder="Pilih / ketik satuan" /></div>
             <div class="field"><label>Kategori</label>
               <select id="mKategori">
                 <option value="">-- Pilih --</option>
@@ -314,10 +353,16 @@
           <input type="text" id="eNamaObat" required oninput="onEditObatInput(this.value)" onfocus="onEditObatInput(this.value)" />
           <div class="ac-list" id="acListEdit"></div>
         </div>
-        <div class="field"><label>Satuan *</label><input type="text" id="eSatuan" required /></div>
-        <div class="field"><label>Jumlah *</label><input type="number" id="eJumlah" min="0" step="any" required oninput="hitungNilaiEdit()" /></div>
-        <div class="field"><label>Harga Satuan *</label><input type="number" id="eHargaSatuan" min="0" step="any" required oninput="hitungNilaiEdit()" /></div>
-        <div class="field"><label>Nilai Transaksi (otomatis)</label><input type="number" id="eNilaiTransaksi" readonly style="background:#eef6f0;font-weight:600;color:var(--green-800)" /></div>
+        <div class="field"><label>Satuan *</label><input type="text" id="eSatuan" list="satuanList" required /></div>
+        <div class="field"><label>Jumlah *</label><input type="number" id="eJumlah" min="0" step="any" required oninput="updateHitungNilaiEdit()" /></div>
+        <div class="field">
+          <label>Harga Satuan *</label>
+          <div class="input-prefix"><input type="text" id="eHargaDisplay" class="input-rupiah" required oninput="onHargaInputEdit(this)" /></div>
+        </div>
+        <div class="field">
+          <label>Nilai Transaksi (otomatis)</label>
+          <div class="input-prefix"><input type="text" id="eNilaiDisplay" class="input-readonly input-rupiah" readonly /></div>
+        </div>
         <div class="field"><label>Tanggal Terima *</label><input type="date" id="eTanggalTerima" required /></div>
         <div class="field"><label>Tanggal ED</label><input type="date" id="eTanggalEd" /></div>
         <div class="field"><label>Nama Penerima *</label><input type="text" id="eNamaPenerima" required /></div>
@@ -348,10 +393,81 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let allData = [], masterData = [];
 let chartBar, chartPie, chartLine;
-
 const ROWS_PER_PAGE = 10;
-let dataPage = 1, masterPage = 1;
-let editingMasterId = null;
+let dataPage = 1, masterPage = 1, editingMasterId = null;
+
+/* =============== FORMAT RUPIAH =============== */
+function formatRupiahDisplay(val){
+  if(val === null || val === undefined || val === '') return '';
+  let num = parseFloat(val);
+  if(isNaN(num)) return '';
+  if(num === 0) return '0';
+  let parts = Math.abs(num).toFixed(2).split('.');
+  let intFormatted = parseInt(parts[0], 10).toLocaleString('id-ID');
+  let dec = parts[1];
+  let sign = num < 0 ? '-' : '';
+  if(dec === '00') return sign + intFormatted;
+  return sign + intFormatted + ',' + dec;
+}
+function parseRupiah(val){
+  if(val === null || val === undefined) return 0;
+  let s = val.toString().trim();
+  if(!s) return 0;
+  s = s.replace(/\./g,'').replace(/,/g,'.');
+  let n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function onHargaInput(el){
+  let raw = el.value;
+  let cleaned = raw.replace(/[^\d,]/g,'');
+  let parts = cleaned.split(',');
+  let intPart = parts[0].replace(/\D/g,'');
+  let decPart = parts.length > 1 ? parts[1].replace(/\D/g,'').slice(0,2) : '';
+  let formatted = '';
+  if(intPart){ formatted = parseInt(intPart, 10).toLocaleString('id-ID'); }
+  else if(parts.length === 1 && raw.trim() === ''){ formatted = ''; }
+  else { formatted = '0'; }
+  if(parts.length > 1){ formatted += ',' + decPart; }
+  el.value = formatted;
+  updateHitungNilai();
+}
+function onHargaInputEdit(el){
+  let raw = el.value;
+  let cleaned = raw.replace(/[^\d,]/g,'');
+  let parts = cleaned.split(',');
+  let intPart = parts[0].replace(/\D/g,'');
+  let decPart = parts.length > 1 ? parts[1].replace(/\D/g,'').slice(0,2) : '';
+  let formatted = '';
+  if(intPart){ formatted = parseInt(intPart, 10).toLocaleString('id-ID'); }
+  else if(parts.length === 1 && raw.trim() === ''){ formatted = ''; }
+  else { formatted = '0'; }
+  if(parts.length > 1){ formatted += ',' + decPart; }
+  el.value = formatted;
+  updateHitungNilaiEdit();
+}
+
+/* =============== HITUNG NILAI =============== */
+function updateHitungNilai(){
+  const j = parseFloat(document.getElementById('inputJumlah').value) || 0;
+  const h = parseRupiah(document.getElementById('inputHargaDisplay').value);
+  const total = j * h;
+  document.getElementById('inputHarga').value = h;
+  document.getElementById('inputNilai').value = total.toFixed(2);
+  document.getElementById('inputNilaiDisplay').value = formatRupiahDisplay(total);
+}
+function updateHitungNilaiEdit(){
+  const j = parseFloat(document.getElementById('eJumlah').value) || 0;
+  const h = parseRupiah(document.getElementById('eHargaDisplay').value);
+  const total = j * h;
+  document.getElementById('eNilaiDisplay').value = formatRupiahDisplay(total);
+  document.getElementById('eNilaiDisplay').dataset.numeric = total;
+}
+function resetHitung(){
+  document.getElementById('inputHargaDisplay').value = '';
+  document.getElementById('inputHarga').value = '';
+  document.getElementById('inputNilaiDisplay').value = '';
+  document.getElementById('inputNilai').value = '';
+}
 
 /* =============== NAV =============== */
 document.querySelectorAll('nav a').forEach(a=>{
@@ -377,36 +493,21 @@ function toast(msg, err=false){
 }
 
 /* =============== UTIL =============== */
-function formatRp(n){ return 'Rp ' + (n||0).toLocaleString('id-ID',{maximumFractionDigits:0}); }
-function formatDate(d){
-  if(!d) return '-';
-  const dt = new Date(d);
-  return dt.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
-}
-function asalBadge(a){
-  if(!a) return '-';
-  const cls = a.includes('Kab')?'kab': a.includes('Prov')?'prov': a.includes('BKKBN')?'bkkbn':'rsud';
-  return `<span class="badge ${cls}">${a}</span>`;
-}
-function normalizeSatuan(s){
-  if(!s) return '';
-  const u = s.toString().trim().toUpperCase();
-  return u === 'TABLET' ? 'TAB' : u;
-}
+function formatRp(n){ return 'Rp ' + (parseFloat(n)||0).toLocaleString('id-ID',{maximumFractionDigits:0}); }
+function formatDate(d){ if(!d) return '-'; return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
+function asalBadge(a){ if(!a) return '-'; const cls = a.includes('Kab')?'kab': a.includes('Prov')?'prov': a.includes('BKKBN')?'bkkbn':'rsud'; return `<span class="badge ${cls}">${a}</span>`; }
+function normalizeSatuan(s){ if(!s) return ''; const u = s.toString().trim().toUpperCase(); return u === 'TABLET' ? 'TAB' : u; }
 function edBadge(ed){
   if(!ed) return '<span style="color:#9ca3af">-</span>';
   const today = new Date(); today.setHours(0,0,0,0);
   const d = new Date(ed); d.setHours(0,0,0,0);
-  const diff = (d - today) / (1000*60*60*24);
+  const diff = (d - today) / 86400000;
   if(diff < 0) return `<span class="badge ed-expired">${formatDate(ed)} ⚠️</span>`;
   if(diff < 180) return `<span class="badge ed-soon">${formatDate(ed)}</span>`;
   return `<span class="badge ed-safe">${formatDate(ed)}</span>`;
 }
 function escapeAttr(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
-function dateToInput(d){
-  if(!d) return '';
-  return d.toString().slice(0,10);
-}
+function dateToInput(d){ return d ? d.toString().slice(0,10) : ''; }
 
 /* =============== PAGINATION =============== */
 function renderPagination(containerId, currentPage, totalItems, onPage){
@@ -415,30 +516,24 @@ function renderPagination(containerId, currentPage, totalItems, onPage){
   if(totalItems === 0){ el.innerHTML = ''; return; }
   const start = (currentPage - 1) * ROWS_PER_PAGE + 1;
   const end = Math.min(currentPage * ROWS_PER_PAGE, totalItems);
-
   let pages = [];
-  if(totalPages <= 7){
-    for(let i=1; i<=totalPages; i++) pages.push(i);
-  } else {
+  if(totalPages <= 7){ for(let i=1;i<=totalPages;i++) pages.push(i); }
+  else {
     pages.push(1);
     if(currentPage > 3) pages.push('...');
-    for(let i=Math.max(2, currentPage-1); i<=Math.min(totalPages-1, currentPage+1); i++) pages.push(i);
+    for(let i=Math.max(2,currentPage-1);i<=Math.min(totalPages-1,currentPage+1);i++) pages.push(i);
     if(currentPage < totalPages-2) pages.push('...');
     pages.push(totalPages);
   }
-  el.innerHTML = `
-    <div class="info">Menampilkan <b>${start}–${end}</b> dari <b>${totalItems}</b> data</div>
+  el.innerHTML = `<div class="info">Menampilkan <b>${start}–${end}</b> dari <b>${totalItems}</b> data</div>
     <div class="pages">
       <button ${currentPage===1?'disabled':''} onclick="${onPage}(${currentPage-1})">‹ Prev</button>
-      ${pages.map(p => p === '...'
-        ? `<button disabled style="border:none;background:transparent;cursor:default">…</button>`
-        : `<button class="${p===currentPage?'active':''}" onclick="${onPage}(${p})">${p}</button>`
-      ).join('')}
+      ${pages.map(p => p === '...' ? `<button disabled style="border:none;background:transparent;cursor:default">…</button>` : `<button class="${p===currentPage?'active':''}" onclick="${onPage}(${p})">${p}</button>`).join('')}
       <button ${currentPage===totalPages?'disabled':''} onclick="${onPage}(${currentPage+1})">Next ›</button>
     </div>`;
 }
 
-/* =============== AUTOCOMPLETE (FORM INPUT) =============== */
+/* =============== AUTOCOMPLETE INPUT =============== */
 let acIdx = -1;
 function onObatInput(val){
   const list = document.getElementById('acList');
@@ -446,13 +541,8 @@ function onObatInput(val){
   if(!q){ list.classList.remove('show'); return; }
   const matches = masterData.filter(m => m.nama_obat.toUpperCase().includes(q)).slice(0, 30);
   if(matches.length === 0){ list.classList.remove('show'); return; }
-  list.innerHTML = matches.map((m,i) =>
-    `<div class="ac-item" data-i="${i}" onclick="pilihObat('${escapeAttr(m.nama_obat)}')">
-      <b>${m.nama_obat}</b>
-      ${m.satuan_default ? `<small>Satuan: ${m.satuan_default} • Kategori: ${m.kategori||'-'}</small>` : ''}
-    </div>`).join('');
-  list.classList.add('show');
-  acIdx = -1;
+  list.innerHTML = matches.map((m,i) => `<div class="ac-item" data-i="${i}" onclick="pilihObat('${escapeAttr(m.nama_obat)}')"><b>${m.nama_obat}</b>${m.satuan_default ? `<small>Satuan: ${m.satuan_default} • Kategori: ${m.kategori||'-'}</small>` : ''}</div>`).join('');
+  list.classList.add('show'); acIdx = -1;
 }
 function pilihObat(nama){
   const m = masterData.find(x => x.nama_obat === nama);
@@ -465,11 +555,11 @@ function pilihObat(nama){
   }
   cariHargaTerakhir(nama);
 }
-document.addEventListener('click', (e)=>{
+document.addEventListener('click', e=>{
   if(!e.target.closest('#inputObat') && !e.target.closest('#acList')) document.getElementById('acList').classList.remove('show');
   if(!e.target.closest('#eNamaObat') && !e.target.closest('#acListEdit')) document.getElementById('acListEdit').classList.remove('show');
 });
-document.getElementById('inputObat')?.addEventListener('keydown', (e)=>{
+document.getElementById('inputObat')?.addEventListener('keydown', e=>{
   const list = document.getElementById('acList');
   const items = list.querySelectorAll('.ac-item');
   if(!list.classList.contains('show') || items.length===0) return;
@@ -481,7 +571,7 @@ document.getElementById('inputObat')?.addEventListener('keydown', (e)=>{
   items[acIdx]?.scrollIntoView({block:'nearest'});
 });
 
-/* =============== AUTOCOMPLETE (FORM EDIT) =============== */
+/* =============== AUTOCOMPLETE EDIT =============== */
 let acIdxEdit = -1;
 function onEditObatInput(val){
   const list = document.getElementById('acListEdit');
@@ -489,13 +579,8 @@ function onEditObatInput(val){
   if(!q){ list.classList.remove('show'); return; }
   const matches = masterData.filter(m => m.nama_obat.toUpperCase().includes(q)).slice(0, 30);
   if(matches.length === 0){ list.classList.remove('show'); return; }
-  list.innerHTML = matches.map((m,i) =>
-    `<div class="ac-item" data-i="${i}" onclick="pilihObatEdit('${escapeAttr(m.nama_obat)}')">
-      <b>${m.nama_obat}</b>
-      ${m.satuan_default ? `<small>Satuan: ${m.satuan_default} • Kategori: ${m.kategori||'-'}</small>` : ''}
-    </div>`).join('');
-  list.classList.add('show');
-  acIdxEdit = -1;
+  list.innerHTML = matches.map((m,i) => `<div class="ac-item" data-i="${i}" onclick="pilihObatEdit('${escapeAttr(m.nama_obat)}')"><b>${m.nama_obat}</b>${m.satuan_default ? `<small>Satuan: ${m.satuan_default} • Kategori: ${m.kategori||'-'}</small>` : ''}</div>`).join('');
+  list.classList.add('show'); acIdxEdit = -1;
 }
 function pilihObatEdit(nama){
   const m = masterData.find(x => x.nama_obat === nama);
@@ -511,38 +596,27 @@ function pilihObatEdit(nama){
 async function cariHargaTerakhir(nama){
   const hint = document.getElementById('hintHarga');
   if(!nama){ hint.classList.remove('show'); return; }
-  const { data, error } = await sb.from('sbbk_obat')
-    .select('harga_satuan,tanggal_surat').eq('nama_obat', nama)
-    .order('tanggal_surat', {ascending:false}).limit(1);
+  const { data, error } = await sb.from('sbbk_obat').select('harga_satuan,tanggal_surat').eq('nama_obat', nama).order('tanggal_surat',{ascending:false}).limit(1);
   if(error || !data || data.length===0){ hint.classList.remove('show'); return; }
   const r = data[0];
-  hint.innerHTML = `💡 Harga terakhir: <b>${formatRp(r.harga_satuan)}</b> (${formatDate(r.tanggal_surat)})
-    <button type="button" onclick="pakaiHarga(${r.harga_satuan})">Pakai</button>`;
+  hint.innerHTML = `💡 Harga terakhir: <b>${formatRp(r.harga_satuan)}</b> (${formatDate(r.tanggal_surat)})<button type="button" onclick="pakaiHarga(${r.harga_satuan})">Pakai</button>`;
   hint.classList.add('show');
 }
-function pakaiHarga(h){ document.getElementById('inputHarga').value = h; hitungNilai(); }
+function pakaiHarga(h){
+  document.getElementById('inputHargaDisplay').value = formatRupiahDisplay(h);
+  updateHitungNilai();
+}
 function resetHint(){ document.getElementById('hintHarga').classList.remove('show'); }
 
-/* =============== HITUNG =============== */
-function hitungNilai(){
-  const f = document.getElementById('formInput');
-  const j = parseFloat(f.jumlah.value)||0;
-  const h = parseFloat(f.harga_satuan.value)||0;
-  f.nilai_transaksi.value = (j*h).toFixed(2);
-}
-function hitungNilaiEdit(){
-  const j = parseFloat(document.getElementById('eJumlah').value)||0;
-  const h = parseFloat(document.getElementById('eHargaSatuan').value)||0;
-  document.getElementById('eNilaiTransaksi').value = (j*h).toFixed(2);
-}
-
-/* =============== FORM INPUT SUBMIT =============== */
+/* =============== SUBMIT INPUT =============== */
 async function submitForm(e){
   e.preventDefault();
+  // Pastikan hidden input ter-update
+  updateHitungNilai();
   const f = e.target;
   const data = Object.fromEntries(new FormData(f).entries());
   data.jumlah = parseFloat(data.jumlah)||0;
-  data.harga_satuan = parseFloat(data.harga_satuan)||0;
+  data.harga_satuan = parseRupiah(document.getElementById('inputHargaDisplay').value);
   data.nilai_transaksi = data.jumlah * data.harga_satuan;
   data.satuan = normalizeSatuan(data.satuan);
   data.tanggal_ed = data.tanggal_ed || null;
@@ -555,27 +629,24 @@ async function submitForm(e){
 
   if(error){ toast('Gagal: '+error.message, true); return; }
   toast('✅ Data berhasil disimpan!');
-  f.reset(); resetHint(); loadData();
+  f.reset(); resetHint(); resetHitung(); loadData();
 }
 
 /* =============== LOAD DATA =============== */
 async function loadData(){
   const { data, error } = await sb.from('sbbk_obat').select('*').order('tanggal_surat',{ascending:false}).limit(2000);
   if(error){ toast('Gagal memuat: '+error.message, true); return; }
-  allData = data || [];
-  dataPage = 1;
-  renderTable();
+  allData = data || []; dataPage = 1; renderTable();
 }
 function onSearchData(){ dataPage = 1; renderTable(); }
 
 function renderTable(){
   const q = (document.getElementById('searchData').value||'').toLowerCase();
-  const rows = allData.filter(r=> !q || JSON.stringify(r).toLowerCase().includes(q));
+  const rows = allData.filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
   const tb = document.querySelector('#tblData tbody');
   if(rows.length===0){
     tb.innerHTML = `<tr><td colspan="15" class="empty">Belum ada data</td></tr>`;
-    renderPagination('pagData', 1, 0, 'gotoDataPage');
-    return;
+    renderPagination('pagData', 1, 0, 'gotoDataPage'); return;
   }
   const start = (dataPage - 1) * ROWS_PER_PAGE;
   const pageRows = rows.slice(start, start + ROWS_PER_PAGE);
@@ -601,7 +672,6 @@ function renderTable(){
         <button class="btn btn-danger btn-sm" onclick="hapusData('${r.id}')" title="Hapus">🗑</button>
       </td>
     </tr>`).join('');
-
   renderPagination('pagData', dataPage, rows.length, 'gotoDataPage');
 }
 function gotoDataPage(p){ dataPage = p; renderTable(); window.scrollTo({top:0,behavior:'smooth'}); }
@@ -615,7 +685,7 @@ async function hapusData(id){
   toast('Data dihapus'); loadData();
 }
 
-/* =============== MODAL EDIT DATA =============== */
+/* =============== MODAL EDIT =============== */
 function openEditModal(id){
   const r = allData.find(x => x.id === id);
   if(!r){ toast('Data tidak ditemukan', true); return; }
@@ -627,14 +697,14 @@ function openEditModal(id){
   document.getElementById('eNamaObat').value = r.nama_obat || '';
   document.getElementById('eSatuan').value = r.satuan || '';
   document.getElementById('eJumlah').value = r.jumlah || 0;
-  document.getElementById('eHargaSatuan').value = r.harga_satuan || 0;
-  document.getElementById('eNilaiTransaksi').value = r.nilai_transaksi || 0;
+  document.getElementById('eHargaDisplay').value = formatRupiahDisplay(r.harga_satuan);
   document.getElementById('eTanggalTerima').value = dateToInput(r.tanggal_terima);
   document.getElementById('eTanggalEd').value = dateToInput(r.tanggal_ed);
   document.getElementById('eNamaPenerima').value = r.nama_penerima || '';
   document.getElementById('eJabatanPenerima').value = r.jabatan_penerima || '';
   document.getElementById('eKategori').value = r.kategori || '';
   document.getElementById('eKeterangan').value = r.keterangan || '';
+  updateHitungNilaiEdit();
   document.getElementById('editModal').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
@@ -642,12 +712,11 @@ function closeEditModal(){
   document.getElementById('editModal').classList.remove('show');
   document.body.style.overflow = '';
 }
-
 async function submitEditForm(e){
   e.preventDefault();
   const id = document.getElementById('eId').value;
   if(!id){ toast('ID tidak valid', true); return; }
-
+  updateHitungNilaiEdit();
   const payload = {
     tanggal_surat: document.getElementById('eTanggalSurat').value || null,
     nomor_surat: document.getElementById('eNomorSurat').value.trim() || null,
@@ -656,7 +725,7 @@ async function submitEditForm(e){
     nama_obat: document.getElementById('eNamaObat').value.trim(),
     satuan: normalizeSatuan(document.getElementById('eSatuan').value),
     jumlah: parseFloat(document.getElementById('eJumlah').value) || 0,
-    harga_satuan: parseFloat(document.getElementById('eHargaSatuan').value) || 0,
+    harga_satuan: parseRupiah(document.getElementById('eHargaDisplay').value),
     tanggal_terima: document.getElementById('eTanggalTerima').value || null,
     tanggal_ed: document.getElementById('eTanggalEd').value || null,
     nama_penerima: document.getElementById('eNamaPenerima').value.trim() || null,
@@ -668,21 +737,15 @@ async function submitEditForm(e){
 
   const btn = document.getElementById('btnUpdateData');
   btn.disabled = true; btn.innerHTML = '<span class="loading"></span> Menyimpan...';
-
   const { error } = await sb.from('sbbk_obat').update(payload).eq('id', id);
   btn.disabled = false; btn.innerHTML = '💾 Update Data';
 
   if(error){ toast('Gagal update: '+error.message, true); return; }
   toast('✅ Data berhasil diupdate');
-  closeEditModal();
-  loadData();
+  closeEditModal(); loadData();
 }
-
-// Tutup modal dengan klik area gelap atau Esc
-document.getElementById('editModal').addEventListener('click', (e)=>{
-  if(e.target.id === 'editModal') closeEditModal();
-});
-document.addEventListener('keydown', (e)=>{
+document.getElementById('editModal').addEventListener('click', e => { if(e.target.id === 'editModal') closeEditModal(); });
+document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && document.getElementById('editModal').classList.contains('show')) closeEditModal();
 });
 
@@ -708,13 +771,11 @@ async function loadDashboard(){
   const to = document.getElementById('fTo').value;
   const asal = document.getElementById('fAsal').value;
   const kat = document.getElementById('fKategori').value;
-
   let q = sb.from('sbbk_obat').select('*');
   if(from) q = q.gte('tanggal_surat', from);
   if(to) q = q.lte('tanggal_surat', to);
   if(asal) q = q.eq('asal_instansi', asal);
   if(kat) q = q.eq('kategori', kat);
-
   const { data, error } = await q.order('tanggal_surat',{ascending:true});
   if(error){ toast('Gagal memuat: '+error.message, true); return; }
 
@@ -767,13 +828,11 @@ async function loadDashboard(){
   });
 }
 
-/* =============== MASTER BARANG =============== */
+/* =============== MASTER =============== */
 async function loadMaster(){
   const { data, error } = await sb.from('master_barang').select('*').order('nama_obat');
   if(error){ toast('Gagal memuat master: '+error.message, true); return; }
-  masterData = data || [];
-  masterPage = 1;
-  renderMaster();
+  masterData = data || []; masterPage = 1; renderMaster();
 }
 function onSearchMaster(){ masterPage = 1; renderMaster(); }
 
@@ -783,12 +842,10 @@ function renderMaster(){
   const tb = document.querySelector('#tblMaster tbody');
   if(rows.length===0){
     tb.innerHTML = `<tr><td colspan="5" class="empty">Belum ada barang</td></tr>`;
-    renderPagination('pagMaster', 1, 0, 'gotoMasterPage');
-    return;
+    renderPagination('pagMaster', 1, 0, 'gotoMasterPage'); return;
   }
   const start = (masterPage - 1) * ROWS_PER_PAGE;
   const pageRows = rows.slice(start, start + ROWS_PER_PAGE);
-
   tb.innerHTML = pageRows.map((m,i)=>`
     <tr>
       <td>${start + i + 1}</td>
@@ -800,7 +857,6 @@ function renderMaster(){
         <button class="btn btn-danger btn-sm" onclick="hapusMaster('${m.id}')" title="Hapus">🗑</button>
       </td>
     </tr>`).join('');
-
   renderPagination('pagMaster', masterPage, rows.length, 'gotoMasterPage');
 }
 function gotoMasterPage(p){ masterPage = p; renderMaster(); window.scrollTo({top:0,behavior:'smooth'}); }
@@ -848,22 +904,14 @@ async function saveMaster(){
   };
   const btn = document.getElementById('btnSaveMaster');
   const isEdit = !!editingMasterId;
-  btn.disabled = true;
-  btn.innerHTML = '<span class="loading"></span> Menyimpan...';
-
+  btn.disabled = true; btn.innerHTML = '<span class="loading"></span> Menyimpan...';
   let error;
-  if(isEdit){
-    ({ error } = await sb.from('master_barang').update(payload).eq('id', editingMasterId));
-  } else {
-    ({ error } = await sb.from('master_barang').insert([payload]));
-  }
-  btn.disabled = false;
-  btn.innerHTML = isEdit ? '💾 Update' : '💾 Simpan';
-
+  if(isEdit){ ({ error } = await sb.from('master_barang').update(payload).eq('id', editingMasterId)); }
+  else { ({ error } = await sb.from('master_barang').insert([payload])); }
+  btn.disabled = false; btn.innerHTML = isEdit ? '💾 Update' : '💾 Simpan';
   if(error){ toast('Gagal: '+error.message, true); return; }
   toast(isEdit ? '✅ Barang berhasil diupdate' : '✅ Barang ditambahkan');
-  closeMasterForm();
-  loadMaster();
+  closeMasterForm(); loadMaster();
 }
 async function hapusMaster(id){
   const m = masterData.find(x => x.id === id);
@@ -871,11 +919,9 @@ async function hapusMaster(id){
   if(!confirm(`Hapus barang "${m.nama_obat}" dari master?`)) return;
   const { error } = await sb.from('master_barang').delete().eq('id', id);
   if(error){ toast('Gagal hapus: '+error.message, true); return; }
-  toast('Barang dihapus');
-  loadMaster();
+  toast('Barang dihapus'); loadMaster();
 }
-
-document.getElementById('masterFormWrap').addEventListener('keydown', (e)=>{
+document.getElementById('masterFormWrap').addEventListener('keydown', e => {
   if(e.key === 'Enter' && e.target.tagName !== 'SELECT'){ e.preventDefault(); saveMaster(); }
 });
 
