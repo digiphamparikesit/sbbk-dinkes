@@ -79,7 +79,6 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   @media(max-width:768px){.app{grid-template-columns:1fr}.sidebar{position:fixed;left:-260px;z-index:100;transition:.3s}.sidebar.open{left:0}.menu-toggle{display:block !important}main{padding:20px}}
   .menu-toggle{display:none;background:var(--green-700);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:18px}
-  /* AUTOCOMPLETE */
   .ac-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--green-500);border-radius:10px;max-height:240px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;margin-top:4px}
   .ac-list.show{display:block}
   .ac-item{padding:10px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f4f1}
@@ -88,6 +87,14 @@
   .hint-box{margin-top:8px;padding:10px 12px;background:#fef9e7;border-left:3px solid #f59e0b;border-radius:8px;font-size:12px;color:#92400e;display:none}
   .hint-box.show{display:block}
   .hint-box button{margin-left:8px;padding:3px 10px;font-size:11px;background:var(--green-700);color:#fff;border:none;border-radius:6px;cursor:pointer}
+  /* PAGINATION */
+  .pagination{display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:10px}
+  .pagination .info{font-size:12px;color:var(--muted)}
+  .pagination .pages{display:flex;gap:6px;align-items:center}
+  .pagination button{padding:6px 12px;border:1.5px solid #e2e8e4;background:#fff;color:var(--green-800);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s;min-width:34px}
+  .pagination button:hover:not(:disabled){background:var(--green-100);border-color:var(--green-500)}
+  .pagination button.active{background:var(--green-700);color:#fff;border-color:var(--green-700)}
+  .pagination button:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -105,9 +112,8 @@
       <a data-page="input">📝 Input Data</a>
       <a data-page="data">📋 Data SBBK</a>
       <a data-page="master">💊 Master Barang</a>
-      <a data-page="pengaturan">⚙️ Pengaturan</a>
     </nav>
-    <footer>© 2024 SBBK Obat<br>v2.0</footer>
+    <footer>© 2024 SBBK Obat<br>v2.1</footer>
   </aside>
 
   <main>
@@ -228,7 +234,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
           <h3 style="margin:0">📋 Daftar Data SBBK</h3>
           <div style="display:flex;gap:8px">
-            <input type="text" id="searchData" placeholder="🔍 Cari..." oninput="renderTable()" style="min-width:220px" />
+            <input type="text" id="searchData" placeholder="🔍 Cari..." oninput="onSearchData()" style="min-width:220px" />
             <button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>
             <button class="btn btn-ghost" onclick="loadData()">↻ Refresh</button>
           </div>
@@ -245,6 +251,7 @@
             <tbody></tbody>
           </table>
         </div>
+        <div class="pagination" id="pagData"></div>
       </div>
     </section>
 
@@ -254,7 +261,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
           <h3 style="margin:0">💊 Master Barang (untuk Autocomplete)</h3>
           <div style="display:flex;gap:8px">
-            <input type="text" id="searchMaster" placeholder="🔍 Cari barang..." oninput="renderMaster()" style="min-width:220px" />
+            <input type="text" id="searchMaster" placeholder="🔍 Cari barang..." oninput="onSearchMaster()" style="min-width:220px" />
             <button class="btn btn-primary" onclick="openMasterForm()">➕ Tambah Barang</button>
           </div>
         </div>
@@ -281,25 +288,7 @@
             <tbody></tbody>
           </table>
         </div>
-      </div>
-    </section>
-
-    <!-- PENGATURAN -->
-    <section id="page-pengaturan" class="page">
-      <div class="panel">
-        <h3>⚙️ Konfigurasi Supabase</h3>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
-          Nilai disimpan di <code>localStorage</code>. Anon key aman dipublikasikan.
-        </p>
-        <div class="form-grid">
-          <div class="field full"><label>Supabase URL</label><input type="text" id="cfgUrl" placeholder="https://xxxxx.supabase.co" /></div>
-          <div class="field full"><label>Supabase Anon Key</label><input type="text" id="cfgKey" placeholder="eyJhbGciOi..." /></div>
-        </div>
-        <div style="margin-top:16px;display:flex;gap:10px">
-          <button class="btn btn-primary" onclick="saveConfig()">💾 Simpan</button>
-          <button class="btn btn-ghost" onclick="testConnection()">🔌 Test Koneksi</button>
-        </div>
-        <div id="cfgStatus" style="margin-top:14px;font-size:13px"></div>
+        <div class="pagination" id="pagMaster"></div>
       </div>
     </section>
   </main>
@@ -309,17 +298,14 @@
 
 <script>
 /* =============== CONFIG =============== */
-let SUPABASE_URL = localStorage.getItem('sb_url') || 'https://yceufetiroigondusbah.supabase.co';
-let SUPABASE_KEY = localStorage.getItem('sb_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZXVmZXRpcm9pZ29uZHVzYmFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTQ3NjksImV4cCI6MjEwNjk5MDc2OX0.5IMvPrSsVwFxRlTe8b77N9y9ecVhPMyNQf5Em-dPWIc';
-let sb = null;
+const SUPABASE_URL = 'https://yceufetiroigondusbah.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZXVmZXRpcm9pZ29uZHVzYmFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTQ3NjksImV4cCI6MjEwNjk5MDc2OX0.5IMvPrSsVwFxRlTe8b77N9y9ecVhPMyNQf5Em-dPWIc';
+let sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let allData = [], masterData = [];
 let chartBar, chartPie, chartLine;
 
-function initSupabase(){
-  if(SUPABASE_URL && SUPABASE_KEY){
-    try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e){ sb = null; }
-  }
-}
+const ROWS_PER_PAGE = 10;
+let dataPage = 1, masterPage = 1;
 
 /* =============== NAV =============== */
 document.querySelectorAll('nav a').forEach(a=>{
@@ -334,7 +320,6 @@ document.querySelectorAll('nav a').forEach(a=>{
     if(pg==='dashboard') loadDashboard();
     if(pg==='data') loadData();
     if(pg==='master') loadMaster();
-    if(pg==='pengaturan') loadConfigUI();
   });
 });
 
@@ -370,6 +355,39 @@ function edBadge(ed){
   if(diff < 0) return `<span class="badge ed-expired">${formatDate(ed)} ⚠️</span>`;
   if(diff < 180) return `<span class="badge ed-soon">${formatDate(ed)}</span>`;
   return `<span class="badge ed-safe">${formatDate(ed)}</span>`;
+}
+
+/* =============== PAGINATION HELPER =============== */
+function renderPagination(containerId, currentPage, totalItems, onPage){
+  const el = document.getElementById(containerId);
+  const totalPages = Math.max(1, Math.ceil(totalItems / ROWS_PER_PAGE));
+  if(totalItems === 0){ el.innerHTML = ''; return; }
+  const start = (currentPage - 1) * ROWS_PER_PAGE + 1;
+  const end = Math.min(currentPage * ROWS_PER_PAGE, totalItems);
+
+  // Bangun tombol halaman (maks 5 tombol + prev/next)
+  let pages = [];
+  if(totalPages <= 7){
+    for(let i=1; i<=totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if(currentPage > 3) pages.push('...');
+    for(let i=Math.max(2, currentPage-1); i<=Math.min(totalPages-1, currentPage+1); i++) pages.push(i);
+    if(currentPage < totalPages-2) pages.push('...');
+    pages.push(totalPages);
+  }
+
+  el.innerHTML = `
+    <div class="info">Menampilkan <b>${start}–${end}</b> dari <b>${totalItems}</b> data</div>
+    <div class="pages">
+      <button ${currentPage===1?'disabled':''} onclick="${onPage}(${currentPage-1})">‹ Prev</button>
+      ${pages.map(p => p === '...'
+        ? `<button disabled style="border:none;background:transparent;cursor:default">…</button>`
+        : `<button class="${p===currentPage?'active':''}" onclick="${onPage}(${p})">${p}</button>`
+      ).join('')}
+      <button ${currentPage===totalPages?'disabled':''} onclick="${onPage}(${currentPage+1})">Next ›</button>
+    </div>
+  `;
 }
 
 /* =============== AUTOCOMPLETE =============== */
@@ -420,7 +438,7 @@ document.getElementById('inputObat')?.addEventListener('keydown', (e)=>{
 /* =============== HARGA TERAKHIR =============== */
 async function cariHargaTerakhir(nama){
   const hint = document.getElementById('hintHarga');
-  if(!sb || !nama){ hint.classList.remove('show'); return; }
+  if(!nama){ hint.classList.remove('show'); return; }
   const { data, error } = await sb.from('sbbk_obat')
     .select('harga_satuan,tanggal_surat,nomor_surat')
     .eq('nama_obat', nama)
@@ -450,7 +468,6 @@ function hitungNilai(){
 /* =============== FORM SUBMIT =============== */
 async function submitForm(e){
   e.preventDefault();
-  if(!sb){ toast('Supabase belum dikonfigurasi!', true); return; }
   const f = e.target;
   const data = Object.fromEntries(new FormData(f).entries());
   data.jumlah = parseFloat(data.jumlah)||0;
@@ -467,19 +484,18 @@ async function submitForm(e){
 
   if(error){ toast('Gagal: '+error.message, true); return; }
   toast('✅ Data berhasil disimpan!');
-  f.reset();
-  resetHint();
-  loadData();
+  f.reset(); resetHint(); loadData();
 }
 
 /* =============== LOAD DATA =============== */
 async function loadData(){
-  if(!sb){ toast('Supabase belum dikonfigurasi!', true); return; }
   const { data, error } = await sb.from('sbbk_obat').select('*').order('tanggal_surat',{ascending:false}).limit(2000);
   if(error){ toast('Gagal memuat: '+error.message, true); return; }
   allData = data || [];
+  dataPage = 1;
   renderTable();
 }
+function onSearchData(){ dataPage = 1; renderTable(); }
 
 function renderTable(){
   const q = (document.getElementById('searchData').value||'').toLowerCase();
@@ -488,10 +504,17 @@ function renderTable(){
     return JSON.stringify(r).toLowerCase().includes(q);
   });
   const tb = document.querySelector('#tblData tbody');
-  if(rows.length===0){ tb.innerHTML = `<tr><td colspan="15" class="empty">Belum ada data</td></tr>`; return; }
-  tb.innerHTML = rows.map((r,i)=>`
+  if(rows.length===0){
+    tb.innerHTML = `<tr><td colspan="15" class="empty">Belum ada data</td></tr>`;
+    renderPagination('pagData', 1, 0, 'gotoDataPage');
+    return;
+  }
+  const start = (dataPage - 1) * ROWS_PER_PAGE;
+  const pageRows = rows.slice(start, start + ROWS_PER_PAGE);
+
+  tb.innerHTML = pageRows.map((r,i)=>`
     <tr>
-      <td>${i+1}</td>
+      <td>${start + i + 1}</td>
       <td>${formatDate(r.tanggal_surat)}</td>
       <td>${r.nomor_surat||'-'}</td>
       <td>${asalBadge(r.asal_instansi)}</td>
@@ -508,14 +531,16 @@ function renderTable(){
       <td><button class="btn btn-danger" onclick="hapusData('${r.id}')">🗑</button></td>
     </tr>
   `).join('');
+
+  renderPagination('pagData', dataPage, rows.length, 'gotoDataPage');
 }
+function gotoDataPage(p){ dataPage = p; renderTable(); window.scrollTo({top:0,behavior:'smooth'}); }
 
 async function hapusData(id){
   if(!confirm('Hapus data ini?')) return;
   const { error } = await sb.from('sbbk_obat').delete().eq('id', id);
   if(error){ toast('Gagal hapus: '+error.message, true); return; }
-  toast('Data dihapus');
-  loadData();
+  toast('Data dihapus'); loadData();
 }
 
 function exportCSV(){
@@ -535,7 +560,6 @@ function resetFilter(){
   loadDashboard();
 }
 async function loadDashboard(){
-  if(!sb){ toast('Supabase belum dikonfigurasi!', true); return; }
   const from = document.getElementById('fFrom').value;
   const to = document.getElementById('fTo').value;
   const asal = document.getElementById('fAsal').value;
@@ -601,32 +625,48 @@ async function loadDashboard(){
 
 /* =============== MASTER BARANG =============== */
 async function loadMaster(){
-  if(!sb){ toast('Supabase belum dikonfigurasi!', true); return; }
   const { data, error } = await sb.from('master_barang').select('*').order('nama_obat');
   if(error){ toast('Gagal memuat master: '+error.message, true); return; }
   masterData = data || [];
+  masterPage = 1;
   renderMaster();
 }
+function onSearchMaster(){ masterPage = 1; renderMaster(); }
+
 function renderMaster(){
   const q = (document.getElementById('searchMaster').value||'').toLowerCase();
   const rows = masterData.filter(m => !q || m.nama_obat.toLowerCase().includes(q));
   const tb = document.querySelector('#tblMaster tbody');
-  if(rows.length===0){ tb.innerHTML = `<tr><td colspan="5" class="empty">Belum ada barang</td></tr>`; return; }
-  tb.innerHTML = rows.map((m,i)=>`
+  if(rows.length===0){
+    tb.innerHTML = `<tr><td colspan="5" class="empty">Belum ada barang</td></tr>`;
+    renderPagination('pagMaster', 1, 0, 'gotoMasterPage');
+    return;
+  }
+  const start = (masterPage - 1) * ROWS_PER_PAGE;
+  const pageRows = rows.slice(start, start + ROWS_PER_PAGE);
+
+  tb.innerHTML = pageRows.map((m,i)=>`
     <tr>
-      <td>${i+1}</td>
+      <td>${start + i + 1}</td>
       <td><b>${m.nama_obat}</b></td>
       <td>${m.satuan_default||'-'}</td>
       <td>${m.kategori?`<span class="badge kategori">${m.kategori}</span>`:'-'}</td>
       <td><button class="btn btn-danger" onclick="hapusMaster('${m.id}')">🗑</button></td>
     </tr>
   `).join('');
+
+  renderPagination('pagMaster', masterPage, rows.length, 'gotoMasterPage');
 }
+function gotoMasterPage(p){ masterPage = p; renderMaster(); window.scrollTo({top:0,behavior:'smooth'}); }
+
 function openMasterForm(){ document.getElementById('masterFormWrap').style.display='block'; }
-function closeMasterForm(){ document.getElementById('masterFormWrap').style.display='none';
-  document.getElementById('mNama').value=''; document.getElementById('mSatuan').value=''; document.getElementById('mKategori').value=''; }
+function closeMasterForm(){
+  document.getElementById('masterFormWrap').style.display='none';
+  document.getElementById('mNama').value='';
+  document.getElementById('mSatuan').value='';
+  document.getElementById('mKategori').value='';
+}
 async function saveMaster(){
-  if(!sb){ toast('Supabase belum dikonfigurasi!', true); return; }
   const nama = document.getElementById('mNama').value.trim();
   if(!nama){ toast('Nama wajib diisi', true); return; }
   const payload = {
@@ -646,32 +686,9 @@ async function hapusMaster(id){
   toast('Barang dihapus'); loadMaster();
 }
 
-/* =============== PENGATURAN =============== */
-function loadConfigUI(){
-  document.getElementById('cfgUrl').value = SUPABASE_URL;
-  document.getElementById('cfgKey').value = SUPABASE_KEY;
-}
-function saveConfig(){
-  SUPABASE_URL = document.getElementById('cfgUrl').value.trim();
-  SUPABASE_KEY = document.getElementById('cfgKey').value.trim();
-  localStorage.setItem('sb_url', SUPABASE_URL);
-  localStorage.setItem('sb_key', SUPABASE_KEY);
-  initSupabase();
-  document.getElementById('cfgStatus').innerHTML = '<span style="color:var(--green-700)">✅ Tersimpan. Reload...</span>';
-  setTimeout(()=>location.reload(), 800);
-}
-async function testConnection(){
-  initSupabase();
-  if(!sb){ document.getElementById('cfgStatus').innerHTML='<span style="color:#b91c1c">❌ Isi URL & Key dulu.</span>'; return; }
-  const { error } = await sb.from('sbbk_obat').select('id').limit(1);
-  if(error) document.getElementById('cfgStatus').innerHTML='<span style="color:#b91c1c">❌ '+error.message+'</span>';
-  else document.getElementById('cfgStatus').innerHTML='<span style="color:var(--green-700)">✅ Koneksi berhasil!</span>';
-}
-
 /* =============== START =============== */
-initSupabase();
-if(sb){ loadDashboard(); loadMaster(); }
-else { toast('⚠️ Atur Supabase di menu Pengaturan', true); }
+loadDashboard();
+loadMaster();
 </script>
 </body>
 </html>
