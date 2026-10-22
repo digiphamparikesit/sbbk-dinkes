@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
-  :root{--green-900:#1b4332;--green-800:#2d6a4f;--green-700:#40916c;--green-500:#74c69d;--green-200:#b7e4c7;--green-100:#d8f3dc;--green-50:#f0f7f4;--text:#1f2937;--muted:#6b7280;--white:#fff;--shadow:0 4px 20px rgba(45,106,79,.08)}
+  :root{--green-900:#1b4332;--green-800:#2d6a4f;--green-700:#40916c;--green-500:#74c69d;--green-200:#b7e4c7;--green-100:#d8f3dc;--green-50:#f0f7f4;--text:#1f2937;--muted:#6b7280;--white:#fff;--shadow:0 4px 20px rgba(45,106,79,.08);--red:#b91c1c;--amber:#f59e0b}
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,sans-serif}
   body{background:var(--green-50);color:var(--text);min-height:100vh}
   .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
@@ -53,6 +53,10 @@
   .btn-excel:hover{background:#155d34}
   .btn-print{background:#1e40af;color:#fff}
   .btn-print:hover{background:#1e3a8a}
+  .btn-debug{background:#7c3aed;color:#fff}
+  .btn-debug:hover{background:#6d28d9}
+  .btn-warn{background:#f59e0b;color:#fff}
+  .btn-warn:hover{background:#d97706}
   .btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
   .chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px}
   @media(max-width:900px){.chart-grid{grid-template-columns:1fr}}
@@ -75,8 +79,8 @@
   .badge.ed-expired{background:#fee2e2;color:#b91c1c}
   .badge.ed-safe{background:#dcfce7;color:#166534}
   .page{display:none}.page.active{display:block}
-  .toast{position:fixed;bottom:24px;right:24px;background:var(--green-800);color:#fff;padding:14px 22px;border-radius:12px;font-size:13px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.2);transform:translateY(100px);opacity:0;transition:.3s;z-index:9999}
-  .toast.show{transform:translateY(0);opacity:1}.toast.err{background:#b91c1c}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--green-800);color:#fff;padding:14px 22px;border-radius:12px;font-size:13px;font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.2);transform:translateY(100px);opacity:0;transition:.3s;z-index:9999;max-width:380px;line-height:1.4}
+  .toast.show{transform:translateY(0);opacity:1}.toast.err{background:var(--red)}.toast.warn{background:var(--amber)}
   .empty{text-align:center;padding:40px;color:var(--muted);font-size:14px}
   .loading{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -112,101 +116,49 @@
   .filter-inline{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:14px;background:var(--green-50);border-radius:12px;margin-bottom:14px}
   .filter-inline .field{min-width:130px;flex:0 1 auto}
 
-  /* ============ PRINT AREA (hidden di layar) ============ */
-  #printArea{display:none}
+  /* DEBUG PANEL */
+  .debug-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px}
+  .debug-card{background:#fbfdfb;border:1.5px solid #e2e8e4;border-radius:12px;padding:14px;position:relative}
+  .debug-card .lbl{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;letter-spacing:.3px}
+  .debug-card .val{font-size:15px;font-weight:700;color:var(--green-800);margin-top:6px;word-break:break-all;font-family:'Consolas',monospace}
+  .debug-card.ok{border-color:#86efac;background:#f0fdf4}
+  .debug-card.err{border-color:#fca5a5;background:#fef2f2}
+  .debug-card.warn{border-color:#fcd34d;background:#fffbeb}
+  .test-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .test-item{padding:12px 14px;background:#f7fbf8;border-radius:10px;border-left:3px solid var(--green-700);display:flex;justify-content:space-between;align-items:start;gap:12px;font-size:13px}
+  .test-item.pass{border-left-color:#16a34a;background:#f0fdf4}
+  .test-item.fail{border-left-color:var(--red);background:#fef2f2}
+  .test-item.run{border-left-color:var(--amber);background:#fffbeb}
+  .test-item .test-name{font-weight:600;color:var(--text)}
+  .test-item .test-detail{font-size:12px;color:var(--muted);margin-top:4px;word-break:break-word;font-family:'Consolas',monospace}
+  .test-item .test-status{font-size:18px;flex-shrink:0}
+  .log-list{background:#1f2937;color:#e5e7eb;padding:14px;border-radius:12px;font-family:'Consolas',monospace;font-size:11.5px;max-height:280px;overflow-y:auto;line-height:1.6}
+  .log-list .log-line{margin-bottom:2px}
+  .log-list .log-time{color:#6b7280}
+  .log-list .log-ok{color:#86efac}
+  .log-list .log-err{color:#fca5a5}
+  .log-list .log-warn{color:#fcd34d}
+  .log-list .log-info{color:#93c5fd}
 
-  /* ============ @MEDIA PRINT ============ */
-  @page{
-    size: A4 landscape;
-    margin: 10mm 8mm 12mm 8mm;
-  }
+  /* PRINT */
+  #printArea{display:none}
+  @page{size:A4 landscape;margin:10mm 8mm 12mm 8mm}
   @media print{
     body{background:#fff !important}
-    .app, .modal-overlay, .toast{display:none !important}
-    #printArea{
-      display:block !important;
-      width:100%;
-      color:#000;
-      font-family:'Segoe UI',Tahoma,Arial,sans-serif;
-    }
-    #printArea .print-title{
-      text-align:center;
-      font-size:16pt;
-      font-weight:700;
-      color:#1B4332;
-      letter-spacing:.5px;
-      margin-bottom:2mm;
-    }
-    #printArea .print-sub{
-      text-align:center;
-      font-size:10pt;
-      color:#333;
-      margin-bottom:1mm;
-    }
-    #printArea .print-meta{
-      display:flex;
-      justify-content:space-between;
-      font-size:8.5pt;
-      color:#444;
-      margin-bottom:3mm;
-      padding-bottom:1mm;
-      border-bottom:1px solid #999;
-    }
-    #printArea table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:7.5pt;
-      min-width:auto;
-    }
-    #printArea thead{
-      display:table-header-group;   /* <<< HEADER REPEAT DI TIAP HALAMAN */
-    }
-    #printArea tfoot{
-      display:table-footer-group;
-    }
-    #printArea th{
-      background:#D8F3DC !important;
-      color:#1B4332 !important;
-      border:0.5pt solid #999;
-      padding:3pt 4pt;
-      text-align:center;
-      font-weight:700;
-      font-size:7.5pt;
-      -webkit-print-color-adjust:exact;
-      print-color-adjust:exact;
-    }
-    #printArea td{
-      border:0.5pt solid #999;
-      padding:2.5pt 4pt;
-      vertical-align:top;
-      font-size:7.5pt;
-      color:#000;
-    }
-    #printArea tbody tr:nth-child(even) td{
-      background:#F7FBF8;
-      -webkit-print-color-adjust:exact;
-      print-color-adjust:exact;
-    }
-    #printArea td.num{
-      text-align:right;
-      font-variant-numeric:tabular-nums;
-      white-space:nowrap;
-    }
-    #printArea td.center{ text-align:center; white-space:nowrap; }
-    #printArea .row-total td{
-      background:#D8F3DC !important;
-      font-weight:700;
-      color:#1B4332;
-      border-top:1.2pt solid #1B4332;
-      -webkit-print-color-adjust:exact;
-      print-color-adjust:exact;
-    }
-    #printArea .print-footer{
-      margin-top:3mm;
-      font-size:7.5pt;
-      color:#555;
-      text-align:right;
-    }
+    .app,.modal-overlay,.toast{display:none !important}
+    #printArea{display:block !important;width:100%;color:#000}
+    #printArea .print-title{text-align:center;font-size:16pt;font-weight:700;color:#1B4332;letter-spacing:.5px;margin-bottom:2mm}
+    #printArea .print-sub{text-align:center;font-size:10pt;color:#333;margin-bottom:1mm}
+    #printArea .print-meta{display:flex;justify-content:space-between;font-size:8.5pt;color:#444;margin-bottom:3mm;padding-bottom:1mm;border-bottom:1px solid #999}
+    #printArea table{width:100%;border-collapse:collapse;font-size:7.5pt;min-width:auto}
+    #printArea thead{display:table-header-group}
+    #printArea th{background:#D8F3DC !important;color:#1B4332 !important;border:0.5pt solid #999;padding:3pt 4pt;text-align:center;font-weight:700;font-size:7.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    #printArea td{border:0.5pt solid #999;padding:2.5pt 4pt;vertical-align:top;font-size:7.5pt;color:#000}
+    #printArea tbody tr:nth-child(even) td{background:#F7FBF8;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    #printArea td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+    #printArea td.center{text-align:center;white-space:nowrap}
+    #printArea .row-total td{background:#D8F3DC !important;font-weight:700;color:#1B4332;border-top:1.2pt solid #1B4332;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    #printArea .print-footer{margin-top:3mm;font-size:7.5pt;color:#555;text-align:right}
   }
 </style>
 </head>
@@ -234,8 +186,9 @@
       <a data-page="input">📝 Input Data</a>
       <a data-page="data">📋 Data SBBK</a>
       <a data-page="master">💊 Master Barang</a>
+      <a data-page="debug">🔍 Debug Supabase</a>
     </nav>
-    <footer>© 2024 SBBK Obat<br>v2.6</footer>
+    <footer>© 2024 SBBK Obat<br>v2.7</footer>
   </aside>
 
   <main>
@@ -351,16 +304,13 @@
             <button class="btn btn-ghost" onclick="loadData()">↻ Refresh</button>
           </div>
         </div>
-
         <div class="filter-inline">
           <div class="field" style="min-width:150px"><label>Dari Tanggal</label><input type="date" id="dataFrom" onchange="onFilterData()" /></div>
           <div class="field" style="min-width:150px"><label>Sampai Tanggal</label><input type="date" id="dataTo" onchange="onFilterData()" /></div>
           <div class="field" style="flex:1;min-width:200px"><label>Cari (nomor surat, nama obat, penerima, dll)</label><input type="text" id="searchData" placeholder="🔍 Cari..." oninput="onSearchData()" /></div>
           <button class="btn btn-ghost" onclick="resetDataFilter()">↻ Reset Filter</button>
         </div>
-
         <div id="dataInfo" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
-
         <div class="table-wrap">
           <table id="tblData">
             <thead><tr>
@@ -410,6 +360,52 @@
           </table>
         </div>
         <div class="pagination" id="pagMaster"></div>
+      </div>
+    </section>
+
+    <!-- DEBUG -->
+    <section id="page-debug" class="page">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="margin:0">🔍 Debug Koneksi Supabase</h3>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-debug" onclick="runAllTests()">▶ Jalankan Semua Test</button>
+            <button class="btn btn-ghost" onclick="clearLogs()">🧹 Bersihkan Log</button>
+          </div>
+        </div>
+
+        <div class="debug-grid">
+          <div class="debug-card" id="dcConfig">
+            <div class="lbl">Konfigurasi</div>
+            <div class="val" id="dConfig">Memuat...</div>
+          </div>
+          <div class="debug-card" id="dcStatus">
+            <div class="lbl">Status Koneksi</div>
+            <div class="val" id="dStatus">Belum dites</div>
+          </div>
+          <div class="debug-card" id="dcLatency">
+            <div class="lbl">Latency</div>
+            <div class="val" id="dLatency">-</div>
+          </div>
+          <div class="debug-card" id="dcRetry">
+            <div class="lbl">Policy Retry</div>
+            <div class="val" id="dRetry">-</div>
+          </div>
+        </div>
+
+        <div style="padding:12px 14px;background:#fffbeb;border-left:3px solid var(--amber);border-radius:8px;font-size:12px;color:#92400e;margin-bottom:14px">
+          ⚡ <b>Anti-Freeze:</b> Setiap request dibungkus <b>timeout 10 detik</b> + <b>auto retry 3x</b> dengan jeda <b>3 detik</b> antar percobaan. Kalau Supabase tidak respon, request dibatalkan otomatis — UI tidak akan nge-freeze.
+        </div>
+
+        <h3 style="font-size:13px;margin-bottom:8px">📋 Hasil Test</h3>
+        <div class="test-list" id="testList">
+          <div class="empty">Klik "Jalankan Semua Test" untuk memulai.</div>
+        </div>
+
+        <h3 style="font-size:13px;margin:16px 0 8px">📜 Log Request (20 terakhir)</h3>
+        <div class="log-list" id="logList">
+          <div class="log-line"><span class="log-time">[--:--:--]</span> <span class="log-info">Log akan muncul di sini...</span></div>
+        </div>
       </div>
     </section>
   </main>
@@ -471,7 +467,7 @@
   </div>
 </div>
 
-<!-- PRINT AREA (hidden, hanya tampil saat print) -->
+<!-- PRINT AREA -->
 <div id="printArea"></div>
 
 <div class="toast" id="toast"></div>
@@ -481,10 +477,78 @@
 const SUPABASE_URL = 'https://yceufetiroigondusbah.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZXVmZXRpcm9pZ29uZHVzYmFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTQ3NjksImV4cCI6MjEwNjk5MDc2OX0.5IMvPrSsVwFxRlTe8b77N9y9ecVhPMyNQf5Em-dPWIc';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let allData = [], masterData = [], filteredData = [];
-let chartBar, chartPie, chartLine;
-const ROWS_PER_PAGE = 10;
-let dataPage = 1, masterPage = 1, editingMasterId = null;
+
+/* =============== ANTI-FREEZE WRAPPER =============== */
+const RETRY_DELAY_MS = 3000;   // Jeda 3 detik antar retry
+const MAX_RETRY = 3;            // Maksimal 3x percobaan
+const TIMEOUT_MS = 10000;       // Timeout 10 detik per request
+
+// Log buffer (20 terakhir)
+const logBuffer = [];
+function pushLog(type, msg){
+  const time = new Date().toLocaleTimeString('id-ID',{hour12:false});
+  logBuffer.unshift({ time, type, msg });
+  if(logBuffer.length > 20) logBuffer.pop();
+  renderLogs();
+}
+function renderLogs(){
+  const el = document.getElementById('logList');
+  if(!el) return;
+  if(logBuffer.length === 0){
+    el.innerHTML = `<div class="log-line"><span class="log-time">[--:--:--]</span> <span class="log-info">Log akan muncul di sini...</span></div>`;
+    return;
+  }
+  el.innerHTML = logBuffer.map(l =>
+    `<div class="log-line"><span class="log-time">[${l.time}]</span> <span class="log-${l.type}">${escapeHtml(l.msg)}</span></div>`
+  ).join('');
+}
+function clearLogs(){
+  logBuffer.length = 0;
+  renderLogs();
+  toast('Log dibersihkan');
+}
+
+// Wrapper: timeout + retry dengan jeda 3 detik
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(new Error(`Timeout ${ms}ms`)), ms))
+  ]);
+}
+
+async function safeQuery(queryName, queryFn){
+  const startTime = Date.now();
+  for(let attempt = 1; attempt <= MAX_RETRY; attempt++){
+    try {
+      pushLog('info', `[${queryName}] Percobaan ${attempt}/${MAX_RETRY}...`);
+      const result = await withTimeout(queryFn(), TIMEOUT_MS);
+      const elapsed = Date.now() - startTime;
+      if(result && result.error){
+        // Error dari Supabase (bukan timeout/network)
+        const errMsg = result.error.message || String(result.error);
+        pushLog('err', `[${queryName}] Gagal: ${errMsg}`);
+        // Retry hanya untuk error yang bisa dicoba ulang
+        const retryable = /network|fetch|timeout|ECONNRESET|502|503|504|JWT|fetch failed/i.test(errMsg);
+        if(attempt < MAX_RETRY && retryable){
+          pushLog('warn', `[${queryName}] Retry dalam ${RETRY_DELAY_MS/1000}s...`);
+          await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+          continue;
+        }
+        return { ...result, attempt, elapsed };
+      }
+      pushLog('ok', `[${queryName}] Sukses dalam ${elapsed}ms (percobaan ${attempt})`);
+      return { ...result, attempt, elapsed };
+    } catch(err){
+      const errMsg = err.message || String(err);
+      pushLog('err', `[${queryName}] ${errMsg}`);
+      if(attempt < MAX_RETRY){
+        pushLog('warn', `[${queryName}] Retry dalam ${RETRY_DELAY_MS/1000}s...`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+      }
+    }
+  }
+  return { error: { message: `Gagal setelah ${MAX_RETRY} percobaan` }, attempt: MAX_RETRY, elapsed: Date.now() - startTime };
+}
 
 /* =============== FORMAT RUPIAH =============== */
 function formatRupiahDisplay(val){
@@ -548,7 +612,6 @@ function updateHitungNilaiEdit(){
   const h = parseRupiah(document.getElementById('eHargaDisplay').value);
   const total = j * h;
   document.getElementById('eNilaiDisplay').value = formatRupiahDisplay(total);
-  document.getElementById('eNilaiDisplay').dataset.numeric = total;
 }
 function resetHitung(){
   document.getElementById('inputHargaDisplay').value = '';
@@ -570,14 +633,15 @@ document.querySelectorAll('nav a').forEach(a=>{
     if(pg==='dashboard') loadDashboard();
     if(pg==='data') loadData();
     if(pg==='master') loadMaster();
+    if(pg==='debug') initDebugPage();
   });
 });
 
-function toast(msg, err=false){
+function toast(msg, err=false, warn=false){
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = 'toast show' + (err?' err':'');
-  setTimeout(()=>t.className='toast'+(err?' err':''), 3000);
+  t.className = 'toast show' + (err?' err':'') + (warn?' warn':'');
+  setTimeout(()=>t.className='toast'+(err?' err':'')+(warn?' warn':''), 3500);
 }
 
 /* =============== UTIL =============== */
@@ -598,6 +662,162 @@ function edBadge(ed){
 function escapeAttr(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 function dateToInput(d){ return d ? d.toString().slice(0,10) : ''; }
 function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* =============== DEBUG PAGE =============== */
+let debugInitDone = false;
+function initDebugPage(){
+  const cfg = document.getElementById('dConfig');
+  cfg.textContent = SUPABASE_URL.replace('https://','').split('.')[0];
+  document.getElementById('dcConfig').className = 'debug-card ok';
+  document.getElementById('dStatus').textContent = 'Belum dites';
+  document.getElementById('dcStatus').className = 'debug-card';
+  document.getElementById('dRetry').textContent = `${MAX_RETRY}x @ ${RETRY_DELAY_MS/1000}s`;
+  document.getElementById('dcRetry').className = 'debug-card';
+  if(!debugInitDone){
+    renderLogs();
+    debugInitDone = true;
+  }
+}
+
+async function runAllTests(){
+  const container = document.getElementById('testList');
+  container.innerHTML = '';
+  const tests = [
+    { name: '1. Cek Config', fn: testConfig },
+    { name: '2. Cek Koneksi (ping)', fn: testPing },
+    { name: '3. Cek Tabel sbbk_obat', fn: testTableSbbk },
+    { name: '4. Cek Tabel master_barang', fn: testTableMaster },
+    { name: '5. Cek RLS Policy (read)', fn: testRls },
+    { name: '6. Cek Insert + Delete (write)', fn: testWrite }
+  ];
+
+  for(const t of tests){
+    const itemId = 'test_' + Math.random().toString(36).slice(2);
+    const el = document.createElement('div');
+    el.id = itemId;
+    el.className = 'test-item run';
+    el.innerHTML = `<div><div class="test-name">${t.name}</div><div class="test-detail">⏳ Menjalankan...</div></div><div class="test-status">⏳</div>`;
+    container.appendChild(el);
+    try {
+      const result = await t.fn();
+      const el2 = document.getElementById(itemId);
+      if(result.ok){
+        el2.className = 'test-item pass';
+        el2.innerHTML = `<div><div class="test-name">${t.name}</div><div class="test-detail">${escapeHtml(result.detail || 'OK')}</div></div><div class="test-status">✅</div>`;
+      } else {
+        el2.className = 'test-item fail';
+        el2.innerHTML = `<div><div class="test-name">${t.name}</div><div class="test-detail">${escapeHtml(result.detail || 'Gagal')}</div></div><div class="test-status">❌</div>`;
+      }
+    } catch(err){
+      const el2 = document.getElementById(itemId);
+      el2.className = 'test-item fail';
+      el2.innerHTML = `<div><div class="test-name">${t.name}</div><div class="test-detail">${escapeHtml(err.message || String(err))}</div></div><div class="test-status">❌</div>`;
+    }
+  }
+
+  // Update status card
+  const fails = container.querySelectorAll('.test-item.fail').length;
+  const passes = container.querySelectorAll('.test-item.pass').length;
+  const dc = document.getElementById('dcStatus');
+  if(fails === 0){
+    document.getElementById('dStatus').textContent = `✅ Semua OK (${passes} lulus)`;
+    dc.className = 'debug-card ok';
+  } else {
+    document.getElementById('dStatus').textContent = `❌ ${fails} gagal / ${passes} lulus`;
+    dc.className = 'debug-card err';
+  }
+}
+
+async function testConfig(){
+  if(!SUPABASE_URL || !SUPABASE_KEY){
+    return { ok: false, detail: 'URL atau KEY kosong' };
+  }
+  const url = new URL(SUPABASE_URL);
+  const refUrl = url.hostname.split('.')[0];
+  // Decode payload JWT
+  try {
+    const payload = JSON.parse(atob(SUPABASE_KEY.split('.')[1]));
+    const refKey = payload.ref;
+    if(refUrl !== refKey){
+      return { ok: false, detail: `Ref URL (${refUrl}) ≠ Ref Key (${refKey}) — project berbeda!` };
+    }
+    return { ok: true, detail: `Ref: ${refKey} • Role: ${payload.role}` };
+  } catch(e){
+    return { ok: false, detail: 'Key bukan JWT valid' };
+  }
+}
+
+async function testPing(){
+  const t0 = performance.now();
+  const result = await safeQuery('ping', () => sb.from('sbbk_obat').select('id', { count: 'exact', head: true }));
+  const latency = Math.round(performance.now() - t0);
+  document.getElementById('dLatency').textContent = latency + 'ms';
+  document.getElementById('dcLatency').className = 'debug-card ' + (latency < 500 ? 'ok' : latency < 2000 ? 'warn' : 'err');
+  if(result.error) return { ok: false, detail: result.error.message };
+  return { ok: true, detail: `Ping ${latency}ms • retry: ${result.attempt}x` };
+}
+
+async function testTableSbbk(){
+  const result = await safeQuery('sbbk_obat', () => sb.from('sbbk_obat').select('id', { count: 'exact', head: true }));
+  if(result.error){
+    const msg = result.error.message;
+    if(/does not exist|not find|PGRST205/i.test(msg)) return { ok: false, detail: 'Tabel tidak ada — jalankan CREATE TABLE' };
+    return { ok: false, detail: msg };
+  }
+  return { ok: true, detail: `Tabel sbbk_obat OK • ${result.count ?? '?'} baris` };
+}
+
+async function testTableMaster(){
+  const result = await safeQuery('master_barang', () => sb.from('master_barang').select('id', { count: 'exact', head: true }));
+  if(result.error){
+    const msg = result.error.message;
+    if(/does not exist|not find|PGRST205/i.test(msg)) return { ok: false, detail: 'Tabel tidak ada — jalankan CREATE TABLE' };
+    return { ok: false, detail: msg };
+  }
+  return { ok: true, detail: `Tabel master_barang OK • ${result.count ?? '?'} baris` };
+}
+
+async function testRls(){
+  const result = await safeQuery('rls-read', () => sb.from('sbbk_obat').select('id').limit(1));
+  if(result.error){
+    const msg = result.error.message;
+    if(/policy|rls|permission|denied/i.test(msg)) return { ok: false, detail: 'RLS memblokir SELECT — buat policy' };
+    return { ok: false, detail: msg };
+  }
+  return { ok: true, detail: 'SELECT diizinkan (RLS policy OK)' };
+}
+
+async function testWrite(){
+  const testPayload = {
+    tanggal_surat: '2020-01-01',
+    nomor_surat: 'DEBUG-TEST-' + Date.now(),
+    asal_instansi: 'TEST',
+    nama_obat: 'TEST-DEBUG-DELETE-ME',
+    satuan: 'PCS',
+    jumlah: 1,
+    harga_satuan: 1,
+    nilai_transaksi: 1,
+    tanggal_terima: '2020-01-01',
+    nama_penerima: 'DEBUG',
+    kategori: 'LAINNYA'
+  };
+  const ins = await safeQuery('insert', () => sb.from('sbbk_obat').insert([testPayload]).select('id').single());
+  if(ins.error){
+    const msg = ins.error.message;
+    if(/policy|rls|permission|denied/i.test(msg)) return { ok: false, detail: 'RLS memblokir INSERT — buat policy' };
+    return { ok: false, detail: msg };
+  }
+  // Hapus test record
+  const del = await safeQuery('delete', () => sb.from('sbbk_obat').delete().eq('nomor_surat', testPayload.nomor_surat));
+  if(del.error) return { ok: false, detail: 'INSERT OK tapi DELETE gagal: ' + del.error.message };
+  return { ok: true, detail: 'INSERT + DELETE berhasil (test record dibersihkan)' };
+}
+
+/* =============== AUTO-RETRY DI LOAD DATA =============== */
+let allData = [], masterData = [], filteredData = [];
+let chartBar, chartPie, chartLine;
+const ROWS_PER_PAGE = 10;
+let dataPage = 1, masterPage = 1, editingMasterId = null;
 
 /* =============== PAGINATION =============== */
 function renderPagination(containerId, currentPage, totalItems, onPage){
@@ -686,9 +906,9 @@ function pilihObatEdit(nama){
 async function cariHargaTerakhir(nama){
   const hint = document.getElementById('hintHarga');
   if(!nama){ hint.classList.remove('show'); return; }
-  const { data, error } = await sb.from('sbbk_obat').select('harga_satuan,tanggal_surat').eq('nama_obat', nama).order('tanggal_surat',{ascending:false}).limit(1);
-  if(error || !data || data.length===0){ hint.classList.remove('show'); return; }
-  const r = data[0];
+  const result = await safeQuery('harga-terakhir', () => sb.from('sbbk_obat').select('harga_satuan,tanggal_surat').eq('nama_obat', nama).order('tanggal_surat',{ascending:false}).limit(1));
+  if(result.error || !result.data || result.data.length===0){ hint.classList.remove('show'); return; }
+  const r = result.data[0];
   hint.innerHTML = `💡 Harga terakhir: <b>${formatRp(r.harga_satuan)}</b> (${formatDate(r.tanggal_surat)})<button type="button" onclick="pakaiHarga(${r.harga_satuan})">Pakai</button>`;
   hint.classList.add('show');
 }
@@ -713,23 +933,22 @@ async function submitForm(e){
 
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true; btn.innerHTML = '<span class="loading"></span> Menyimpan...';
-  const { error } = await sb.from('sbbk_obat').insert([data]);
+  const result = await safeQuery('insert-sbbk', () => sb.from('sbbk_obat').insert([data]));
   btn.disabled = false; btn.innerHTML = '💾 Simpan Data';
 
-  if(error){ toast('Gagal: '+error.message, true); return; }
+  if(result.error){ toast('Gagal: '+result.error.message, true); return; }
   toast('✅ Data berhasil disimpan!');
   f.reset(); resetHint(); resetHitung(); loadData();
 }
 
 /* =============== LOAD DATA =============== */
 async function loadData(){
-  const { data, error } = await sb.from('sbbk_obat').select('*').order('tanggal_surat',{ascending:false}).limit(5000);
-  if(error){ toast('Gagal memuat: '+error.message, true); return; }
-  allData = data || [];
+  const result = await safeQuery('load-data', () => sb.from('sbbk_obat').select('*').order('tanggal_surat',{ascending:false}).limit(5000));
+  if(result.error){ toast('Gagal memuat: '+result.error.message, true); return; }
+  allData = result.data || [];
   dataPage = 1;
   applyDataFilter();
 }
-
 function onFilterData(){ dataPage = 1; applyDataFilter(); }
 function onSearchData(){ dataPage = 1; applyDataFilter(); }
 function resetDataFilter(){
@@ -762,7 +981,6 @@ function applyDataFilter(){
   }
   if(q) infoText += ` | Pencarian: "<b>${q}</b>"`;
   info.innerHTML = infoText;
-
   renderTable();
 }
 
@@ -805,19 +1023,16 @@ async function hapusData(id){
   const r = allData.find(x=>x.id === id);
   const label = r ? `${r.nama_obat} (${r.nomor_surat||'-'})` : 'data ini';
   if(!confirm(`Hapus "${label}"?`)) return;
-  const { error } = await sb.from('sbbk_obat').delete().eq('id', id);
-  if(error){ toast('Gagal hapus: '+error.message, true); return; }
+  const result = await safeQuery('delete-sbbk', () => sb.from('sbbk_obat').delete().eq('id', id));
+  if(result.error){ toast('Gagal hapus: '+result.error.message, true); return; }
   toast('Data dihapus'); loadData();
 }
 
 /* =============== PRINT PREVIEW =============== */
 function printPreview(){
   if(filteredData.length === 0){ toast('Tidak ada data untuk diprint', true); return; }
-
   const from = document.getElementById('dataFrom').value;
   const to = document.getElementById('dataTo').value;
-
-  // Bangun HTML print area
   let periode = '';
   if(from && to) periode = `${formatDate(from)} s/d ${formatDate(to)}`;
   else if(from) periode = `Sejak ${formatDate(from)}`;
@@ -825,15 +1040,12 @@ function printPreview(){
   else periode = 'Seluruh Periode';
 
   const now = new Date();
-  const tglCetak = now.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'}) + ' ' +
-                   now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-
+  const tglCetak = now.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'}) + ' ' + now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
   let totalJumlah = 0, totalNilai = 0;
   const rowsHtml = filteredData.map((r, i) => {
     const jml = parseFloat(r.jumlah) || 0;
     const nilai = parseFloat(r.nilai_transaksi) || 0;
-    totalJumlah += jml;
-    totalNilai += nilai;
+    totalJumlah += jml; totalNilai += nilai;
     return `<tr>
       <td class="center">${i + 1}</td>
       <td class="center">${formatDateISO(r.tanggal_surat) || '-'}</td>
@@ -861,25 +1073,13 @@ function printPreview(){
       <span>Dicetak: ${tglCetak}</span>
     </div>
     <table>
-      <thead>
-        <tr>
-          <th style="width:3%">No</th>
-          <th style="width:6%">Tgl Surat</th>
-          <th style="width:11%">No. Surat SBBK</th>
-          <th style="width:7%">Asal Instansi</th>
-          <th style="width:10%">Perihal</th>
-          <th style="width:13%">Nama Obat/BMHP</th>
-          <th style="width:4%">Sat.</th>
-          <th style="width:5%">Jumlah</th>
-          <th style="width:7%">Harga</th>
-          <th style="width:8%">Nilai</th>
-          <th style="width:6%">Tgl Terima</th>
-          <th style="width:6%">Tgl ED</th>
-          <th style="width:6%">Kategori</th>
-          <th style="width:8%">Penerima</th>
-          <th style="width:8%">Jabatan</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th style="width:3%">No</th><th style="width:6%">Tgl Surat</th><th style="width:11%">No. Surat SBBK</th>
+        <th style="width:7%">Asal Instansi</th><th style="width:10%">Perihal</th><th style="width:13%">Nama Obat/BMHP</th>
+        <th style="width:4%">Sat.</th><th style="width:5%">Jumlah</th><th style="width:7%">Harga</th>
+        <th style="width:8%">Nilai</th><th style="width:6%">Tgl Terima</th><th style="width:6%">Tgl ED</th>
+        <th style="width:6%">Kategori</th><th style="width:8%">Penerima</th><th style="width:8%">Jabatan</th>
+      </tr></thead>
       <tbody>${rowsHtml}</tbody>
       <tfoot>
         <tr class="row-total">
@@ -891,144 +1091,70 @@ function printPreview(){
         </tr>
       </tfoot>
     </table>
-    <div class="print-footer">Halaman dicetak otomatis dari FORM SBBK OBAT</div>
+    <div class="print-footer">Dicetak otomatis dari FORM SBBK OBAT</div>
   `;
-
-  // Trigger print dialog
   setTimeout(() => window.print(), 200);
   toast(`🖨️ Membuka print preview (${filteredData.length} baris)`);
 }
 
-/* =============== EXPORT EXCEL (.XLSX) =============== */
+/* =============== EXPORT EXCEL =============== */
 function exportExcel(){
   if(filteredData.length === 0){ toast('Tidak ada data untuk diexport', true); return; }
-
   const from = document.getElementById('dataFrom').value;
   const to = document.getElementById('dataTo').value;
-
-  const headers = [
-    'No','Tanggal Surat','Nomor Surat SBBK','Asal Instansi','Perihal',
-    'Nama Obat/BMHP KAB','Satuan','Jumlah','Harga Satuan','Nilai Transaksi',
-    'Tanggal Terima','Tanggal ED','Kategori','Nama Penerima','Jabatan Penerima','Keterangan'
-  ];
-
-  const aoa = [];
-  aoa.push(['REKAPAN SBBK DINAS KESEHATAN']);
-  aoa.push([`Periode: ${from ? formatDate(from) : 'AWAL'} s/d ${to ? formatDate(to) : 'SEKARANG'}`]);
-  aoa.push([]);
-  aoa.push(headers);
-
+  const headers = ['No','Tanggal Surat','Nomor Surat SBBK','Asal Instansi','Perihal','Nama Obat/BMHP KAB','Satuan','Jumlah','Harga Satuan','Nilai Transaksi','Tanggal Terima','Tanggal ED','Kategori','Nama Penerima','Jabatan Penerima','Keterangan'];
+  const aoa = [['REKAPAN SBBK DINAS KESEHATAN'],[`Periode: ${from ? formatDate(from) : 'AWAL'} s/d ${to ? formatDate(to) : 'SEKARANG'}`],[],headers];
   const HEADER_ROW = 3;
   filteredData.forEach((r, i) => {
-    aoa.push([
-      i + 1,
-      formatDateISO(r.tanggal_surat),
-      r.nomor_surat || '',
-      r.asal_instansi || '',
-      r.perihal || '',
-      r.nama_obat || '',
-      r.satuan || '',
-      parseFloat(r.jumlah) || 0,
-      parseFloat(r.harga_satuan) || 0,
-      parseFloat(r.nilai_transaksi) || 0,
-      formatDateISO(r.tanggal_terima),
-      formatDateISO(r.tanggal_ed),
-      r.kategori || '',
-      r.nama_penerima || '',
-      r.jabatan_penerima || '',
-      r.keterangan || ''
-    ]);
+    aoa.push([i + 1, formatDateISO(r.tanggal_surat), r.nomor_surat || '', r.asal_instansi || '', r.perihal || '', r.nama_obat || '', r.satuan || '', parseFloat(r.jumlah) || 0, parseFloat(r.harga_satuan) || 0, parseFloat(r.nilai_transaksi) || 0, formatDateISO(r.tanggal_terima), formatDateISO(r.tanggal_ed), r.kategori || '', r.nama_penerima || '', r.jabatan_penerima || '', r.keterangan || '']);
   });
-
   const totalJumlah = filteredData.reduce((s,r)=>s+(parseFloat(r.jumlah)||0), 0);
   const totalNilai = filteredData.reduce((s,r)=>s+(parseFloat(r.nilai_transaksi)||0), 0);
   const totalRowIdx = aoa.length;
   const totalRow = new Array(headers.length).fill('');
-  totalRow[2] = 'TOTAL';
-  totalRow[7] = totalJumlah;
-  totalRow[9] = totalNilai;
+  totalRow[2] = 'TOTAL'; totalRow[7] = totalJumlah; totalRow[9] = totalNilai;
   aoa.push(totalRow);
-
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } }
-  ];
-
-  ws['!cols'] = [
-    { wch: 5 },  { wch: 13 }, { wch: 28 }, { wch: 16 }, { wch: 26 },
-    { wch: 32 }, { wch: 8 },  { wch: 10 }, { wch: 14 }, { wch: 16 },
-    { wch: 13 }, { wch: 13 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 22 }
-  ];
-
-  const border = {
-    top: { style: 'thin', color: { rgb: 'B7E4C7' } },
-    bottom: { style: 'thin', color: { rgb: 'B7E4C7' } },
-    left: { style: 'thin', color: { rgb: 'B7E4C7' } },
-    right: { style: 'thin', color: { rgb: 'B7E4C7' } }
-  };
-
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },{ s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } }];
+  ws['!cols'] = [{ wch: 5 },{ wch: 13 },{ wch: 28 },{ wch: 16 },{ wch: 26 },{ wch: 32 },{ wch: 8 },{ wch: 10 },{ wch: 14 },{ wch: 16 },{ wch: 13 },{ wch: 13 },{ wch: 14 },{ wch: 16 },{ wch: 16 },{ wch: 22 }];
+  const border = { top: { style: 'thin', color: { rgb: 'B7E4C7' } }, bottom: { style: 'thin', color: { rgb: 'B7E4C7' } }, left: { style: 'thin', color: { rgb: 'B7E4C7' } }, right: { style: 'thin', color: { rgb: 'B7E4C7' } } };
   const titleCell = XLSX.utils.encode_cell({ r: 0, c: 0 });
   if(ws[titleCell]) ws[titleCell].s = { font: { bold: true, sz: 16, color: { rgb: '1B4332' } }, alignment: { horizontal: 'center', vertical: 'center' } };
   const periodCell = XLSX.utils.encode_cell({ r: 1, c: 0 });
   if(ws[periodCell]) ws[periodCell].s = { font: { bold: true, sz: 11, color: { rgb: '40916C' } }, alignment: { horizontal: 'center', vertical: 'center' } };
-
   headers.forEach((_, i) => {
     const cell = XLSX.utils.encode_cell({ r: HEADER_ROW, c: i });
-    if(ws[cell]) ws[cell].s = {
-      font: { bold: true, sz: 11, color: { rgb: '1B4332' } },
-      fill: { fgColor: { rgb: 'D8F3DC' } },
-      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-      border: border
-    };
+    if(ws[cell]) ws[cell].s = { font: { bold: true, sz: 11, color: { rgb: '1B4332' } }, fill: { fgColor: { rgb: 'D8F3DC' } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: border };
   });
-
   for(let r = HEADER_ROW + 1; r < aoa.length; r++){
     for(let c = 0; c < headers.length; c++){
       const cell = XLSX.utils.encode_cell({ r, c });
       if(!ws[cell]) ws[cell] = { t: 's', v: '' };
       const isNumber = [7, 8, 9].includes(c);
-      ws[cell].s = {
-        alignment: { horizontal: isNumber ? 'right' : 'left', vertical: 'center', wrapText: false },
-        border: border,
-        font: { sz: 10 }
-      };
-      if(isNumber && typeof ws[cell].v === 'number'){
-        ws[cell].z = '#,##0';
-        ws[cell].t = 'n';
-      }
+      ws[cell].s = { alignment: { horizontal: isNumber ? 'right' : 'left', vertical: 'center', wrapText: false }, border: border, font: { sz: 10 } };
+      if(isNumber && typeof ws[cell].v === 'number'){ ws[cell].z = '#,##0'; ws[cell].t = 'n'; }
     }
   }
   for(let c = 0; c < headers.length; c++){
     const cell = XLSX.utils.encode_cell({ r: totalRowIdx, c });
     if(ws[cell]){
-      ws[cell].s = {
-        font: { bold: true, sz: 11, color: { rgb: '1B4332' } },
-        fill: { fgColor: { rgb: 'F0F7F4' } },
-        alignment: { horizontal: [7,9].includes(c) ? 'right' : 'left', vertical: 'center' },
-        border: border
-      };
+      ws[cell].s = { font: { bold: true, sz: 11, color: { rgb: '1B4332' } }, fill: { fgColor: { rgb: 'F0F7F4' } }, alignment: { horizontal: [7,9].includes(c) ? 'right' : 'left', vertical: 'center' }, border: border };
       if([7,9].includes(c) && typeof ws[cell].v === 'number') ws[cell].z = '#,##0';
     }
   }
-
   ws['!pageSetup'] = { orientation: 'landscape', paperSize: 9, fitToWidth: 1, fitToHeight: 0, scale: 100, horizontalCentered: true };
   ws['!margins'] = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
   ws['!printHeader'] = [4, 4];
   ws['!freeze'] = { xSplit: 0, ySplit: 4, topLeftCell: 'A5', activePane: 'bottomLeft' };
-
   const wb = XLSX.utils.book_new();
   wb.Props = { Title: 'Rekapan SBBK Dinas Kesehatan', Subject: 'SBBK', Author: 'Form SBBK Obat', CreatedDate: new Date() };
   XLSX.utils.book_append_sheet(wb, ws, 'Rekapan SBBK');
-
   const today = new Date().toISOString().slice(0,10);
   let fname = `Rekapan_SBBK_${today}`;
   if(from && to) fname = `Rekapan_SBBK_${from}_sd_${to}`;
   else if(from) fname = `Rekapan_SBBK_dari_${from}`;
   else if(to) fname = `Rekapan_SBBK_sampai_${to}`;
   XLSX.writeFile(wb, fname + '.xlsx');
-
   toast(`✅ Export berhasil (${filteredData.length} baris)`);
 }
 
@@ -1081,13 +1207,11 @@ async function submitEditForm(e){
     keterangan: document.getElementById('eKeterangan').value.trim() || null
   };
   payload.nilai_transaksi = payload.jumlah * payload.harga_satuan;
-
   const btn = document.getElementById('btnUpdateData');
   btn.disabled = true; btn.innerHTML = '<span class="loading"></span> Menyimpan...';
-  const { error } = await sb.from('sbbk_obat').update(payload).eq('id', id);
+  const result = await safeQuery('update-sbbk', () => sb.from('sbbk_obat').update(payload).eq('id', id));
   btn.disabled = false; btn.innerHTML = '💾 Update Data';
-
-  if(error){ toast('Gagal update: '+error.message, true); return; }
+  if(result.error){ toast('Gagal update: '+result.error.message, true); return; }
   toast('✅ Data berhasil diupdate');
   closeEditModal(); loadData();
 }
@@ -1114,10 +1238,10 @@ async function loadDashboard(){
   if(to) q = q.lte('tanggal_surat', to);
   if(asal) q = q.eq('asal_instansi', asal);
   if(kat) q = q.eq('kategori', kat);
-  const { data, error } = await q.order('tanggal_surat',{ascending:true});
-  if(error){ toast('Gagal memuat: '+error.message, true); return; }
+  const result = await safeQuery('dashboard', () => q.order('tanggal_surat',{ascending:true}));
+  if(result.error){ toast('Gagal memuat: '+result.error.message, true); return; }
 
-  const rows = data || [];
+  const rows = result.data || [];
   const totalNilai = rows.reduce((s,r)=>s+(+r.nilai_transaksi||0),0);
   const totalJumlah = rows.reduce((s,r)=>s+(+r.jumlah||0),0);
   const uniqueObat = new Set(rows.map(r=>r.nama_obat)).size;
@@ -1148,8 +1272,7 @@ async function loadDashboard(){
   chartBar = new Chart(document.getElementById('chartBar'),{
     type:'bar',
     data:{ labels:Object.keys(byAsal), datasets:[{ label:'Nilai', data:Object.values(byAsal), backgroundColor:greenPalette, borderRadius:8 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt' } } } }
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt' } } } }
   });
   chartPie = new Chart(document.getElementById('chartPie'),{
     type:'doughnut',
@@ -1158,19 +1281,16 @@ async function loadDashboard(){
   });
   chartLine = new Chart(document.getElementById('chartLine'),{
     type:'line',
-    data:{ labels:sortedDates.map(d=>formatDate(d)),
-      datasets:[{ label:'Nilai', data:sortedDates.map(d=>byDate[d]), borderColor:'#2d6a4f',
-        backgroundColor:'rgba(116,198,157,.25)', fill:true, tension:.35, pointBackgroundColor:'#40916c', pointRadius:3 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt' } } } }
+    data:{ labels:sortedDates.map(d=>formatDate(d)), datasets:[{ label:'Nilai', data:sortedDates.map(d=>byDate[d]), borderColor:'#2d6a4f', backgroundColor:'rgba(116,198,157,.25)', fill:true, tension:.35, pointBackgroundColor:'#40916c', pointRadius:3 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt' } } } }
   });
 }
 
 /* =============== MASTER =============== */
 async function loadMaster(){
-  const { data, error } = await sb.from('master_barang').select('*').order('nama_obat');
-  if(error){ toast('Gagal memuat master: '+error.message, true); return; }
-  masterData = data || []; masterPage = 1; renderMaster();
+  const result = await safeQuery('load-master', () => sb.from('master_barang').select('*').order('nama_obat'));
+  if(result.error){ toast('Gagal memuat master: '+result.error.message, true); return; }
+  masterData = result.data || []; masterPage = 1; renderMaster();
 }
 function onSearchMaster(){ masterPage = 1; renderMaster(); }
 
@@ -1243,11 +1363,14 @@ async function saveMaster(){
   const btn = document.getElementById('btnSaveMaster');
   const isEdit = !!editingMasterId;
   btn.disabled = true; btn.innerHTML = '<span class="loading"></span> Menyimpan...';
-  let error;
-  if(isEdit){ ({ error } = await sb.from('master_barang').update(payload).eq('id', editingMasterId)); }
-  else { ({ error } = await sb.from('master_barang').insert([payload])); }
+  let result;
+  if(isEdit){
+    result = await safeQuery('update-master', () => sb.from('master_barang').update(payload).eq('id', editingMasterId));
+  } else {
+    result = await safeQuery('insert-master', () => sb.from('master_barang').insert([payload]));
+  }
   btn.disabled = false; btn.innerHTML = isEdit ? '💾 Update' : '💾 Simpan';
-  if(error){ toast('Gagal: '+error.message, true); return; }
+  if(result.error){ toast('Gagal: '+result.error.message, true); return; }
   toast(isEdit ? '✅ Barang berhasil diupdate' : '✅ Barang ditambahkan');
   closeMasterForm(); loadMaster();
 }
@@ -1255,8 +1378,8 @@ async function hapusMaster(id){
   const m = masterData.find(x => x.id === id);
   if(!m) return;
   if(!confirm(`Hapus barang "${m.nama_obat}" dari master?`)) return;
-  const { error } = await sb.from('master_barang').delete().eq('id', id);
-  if(error){ toast('Gagal hapus: '+error.message, true); return; }
+  const result = await safeQuery('delete-master', () => sb.from('master_barang').delete().eq('id', id));
+  if(result.error){ toast('Gagal hapus: '+result.error.message, true); return; }
   toast('Barang dihapus'); loadMaster();
 }
 document.getElementById('masterFormWrap').addEventListener('keydown', e => {
