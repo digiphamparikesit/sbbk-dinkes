@@ -115,8 +115,6 @@
   .input-prefix input{padding-left:38px}
   .filter-inline{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:14px;background:var(--green-50);border-radius:12px;margin-bottom:14px}
   .filter-inline .field{min-width:130px;flex:0 1 auto}
-
-  /* DEBUG PANEL */
   .debug-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px}
   .debug-card{background:#fbfdfb;border:1.5px solid #e2e8e4;border-radius:12px;padding:14px;position:relative}
   .debug-card .lbl{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;letter-spacing:.3px}
@@ -139,8 +137,6 @@
   .log-list .log-err{color:#fca5a5}
   .log-list .log-warn{color:#fcd34d}
   .log-list .log-info{color:#93c5fd}
-
-  /* PRINT */
   #printArea{display:none}
   @page{size:A4 landscape;margin:10mm 8mm 12mm 8mm}
   @media print{
@@ -188,7 +184,7 @@
       <a data-page="master">💊 Master Barang</a>
       <a data-page="debug">🔍 Debug Supabase</a>
     </nav>
-    <footer>© 2024 SBBK Obat<br>v2.7</footer>
+    <footer>© 2024 SBBK Obat<br>v2.8</footer>
   </aside>
 
   <main>
@@ -479,11 +475,10 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* =============== ANTI-FREEZE WRAPPER =============== */
-const RETRY_DELAY_MS = 3000;   // Jeda 3 detik antar retry
-const MAX_RETRY = 3;            // Maksimal 3x percobaan
-const TIMEOUT_MS = 10000;       // Timeout 10 detik per request
+const RETRY_DELAY_MS = 3000;   
+const MAX_RETRY = 3;            
+const TIMEOUT_MS = 10000;       
 
-// Log buffer (20 terakhir)
 const logBuffer = [];
 function pushLog(type, msg){
   const time = new Date().toLocaleTimeString('id-ID',{hour12:false});
@@ -507,45 +502,26 @@ function clearLogs(){
   renderLogs();
   toast('Log dibersihkan');
 }
-  
-// =============== ANTI-FREEZE WRAPPER (DIPERBAIKI) ===============
-const RETRY_DELAY_MS = 3000;
-const MAX_RETRY = 3;
-const TIMEOUT_MS = 10000; // 10 detik
 
-// Wrapper baru: memaksa batalkan koneksi jika timeout
 async function safeQuery(queryName, queryFn) {
   const startTime = Date.now();
-  
   for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
     const controller = new AbortController();
     let isTimeout = false;
-    
-    // Timer untuk memutus paksa koneksi
-    const timeoutId = setTimeout(() => {
-      isTimeout = true;
-      controller.abort(); // INI KUNCINYA: Batalkan koneksi HTTP
-    }, TIMEOUT_MS);
+    const timeoutId = setTimeout(() => { isTimeout = true; controller.abort(); }, TIMEOUT_MS);
 
     try {
       pushLog('info', `[${queryName}] Percobaan ${attempt}/${MAX_RETRY}...`);
-      
-      // Panggil fungsi query dengan menyertakan signal abort
-      // NOTE: Supabase v2 secara native mendukung options { signal }
       const result = await queryFn(controller.signal);
       clearTimeout(timeoutId);
-      
       const elapsed = Date.now() - startTime;
 
       if (result && result.error) {
         const errMsg = result.error.message || String(result.error);
         pushLog('err', `[${queryName}] Gagal: ${errMsg}`);
-        
-        // Jika error bukan masalah jaringan, jangan di-retry
         if (!/network|fetch|timeout|ECONNRESET|502|503|504|JWT|AbortError/i.test(errMsg)) {
           return { ...result, attempt, elapsed };
         }
-        
         if (attempt < MAX_RETRY) {
           pushLog('warn', `[${queryName}] Retry dalam ${RETRY_DELAY_MS/1000}s...`);
           await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
@@ -553,17 +529,13 @@ async function safeQuery(queryName, queryFn) {
         }
         return { ...result, attempt, elapsed };
       }
-
       pushLog('ok', `[${queryName}] Sukses dalam ${elapsed}ms (percobaan ${attempt})`);
       return { ...result, attempt, elapsed };
-      
     } catch (err) {
       clearTimeout(timeoutId);
       const elapsed = Date.now() - startTime;
       const errMsg = isTimeout ? `Timeout (Koneksi terputus paksa)` : (err.message || String(err));
-      
       pushLog('err', `[${queryName}] ${errMsg}`);
-      
       if (attempt < MAX_RETRY) {
         pushLog('warn', `[${queryName}] Retry dalam ${RETRY_DELAY_MS/1000}s...`);
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
@@ -739,7 +711,6 @@ async function runAllTests(){
     }
   }
 
-  // Update status card
   const fails = container.querySelectorAll('.test-item.fail').length;
   const passes = container.querySelectorAll('.test-item.pass').length;
   const dc = document.getElementById('dcStatus');
@@ -758,7 +729,6 @@ async function testConfig(){
   }
   const url = new URL(SUPABASE_URL);
   const refUrl = url.hostname.split('.')[0];
-  // Decode payload JWT
   try {
     const payload = JSON.parse(atob(SUPABASE_KEY.split('.')[1]));
     const refKey = payload.ref;
@@ -773,7 +743,7 @@ async function testConfig(){
 
 async function testPing(){
   const t0 = performance.now();
-  const result = await safeQuery('ping', () => sb.from('sbbk_obat').select('id', { count: 'exact', head: true }));
+  const result = await safeQuery('ping', (signal) => sb.from('sbbk_obat').select('id', { count: 'exact', head: true }).abortSignal(signal));
   const latency = Math.round(performance.now() - t0);
   document.getElementById('dLatency').textContent = latency + 'ms';
   document.getElementById('dcLatency').className = 'debug-card ' + (latency < 500 ? 'ok' : latency < 2000 ? 'warn' : 'err');
@@ -782,7 +752,7 @@ async function testPing(){
 }
 
 async function testTableSbbk(){
-  const result = await safeQuery('sbbk_obat', () => sb.from('sbbk_obat').select('id', { count: 'exact', head: true }));
+  const result = await safeQuery('sbbk_obat', (signal) => sb.from('sbbk_obat').select('id', { count: 'exact', head: true }).abortSignal(signal));
   if(result.error){
     const msg = result.error.message;
     if(/does not exist|not find|PGRST205/i.test(msg)) return { ok: false, detail: 'Tabel tidak ada — jalankan CREATE TABLE' };
@@ -792,7 +762,7 @@ async function testTableSbbk(){
 }
 
 async function testTableMaster(){
-  const result = await safeQuery('master_barang', () => sb.from('master_barang').select('id', { count: 'exact', head: true }));
+  const result = await safeQuery('master_barang', (signal) => sb.from('master_barang').select('id', { count: 'exact', head: true }).abortSignal(signal));
   if(result.error){
     const msg = result.error.message;
     if(/does not exist|not find|PGRST205/i.test(msg)) return { ok: false, detail: 'Tabel tidak ada — jalankan CREATE TABLE' };
@@ -802,7 +772,7 @@ async function testTableMaster(){
 }
 
 async function testRls(){
-  const result = await safeQuery('rls-read', () => sb.from('sbbk_obat').select('id').limit(1));
+  const result = await safeQuery('rls-read', (signal) => sb.from('sbbk_obat').select('id').limit(1).abortSignal(signal));
   if(result.error){
     const msg = result.error.message;
     if(/policy|rls|permission|denied/i.test(msg)) return { ok: false, detail: 'RLS memblokir SELECT — buat policy' };
@@ -825,14 +795,13 @@ async function testWrite(){
     nama_penerima: 'DEBUG',
     kategori: 'LAINNYA'
   };
-  const ins = await safeQuery('insert', () => sb.from('sbbk_obat').insert([testPayload]).select('id').single());
+  const ins = await safeQuery('insert', (signal) => sb.from('sbbk_obat').insert([testPayload]).select('id').single().abortSignal(signal));
   if(ins.error){
     const msg = ins.error.message;
     if(/policy|rls|permission|denied/i.test(msg)) return { ok: false, detail: 'RLS memblokir INSERT — buat policy' };
     return { ok: false, detail: msg };
   }
-  // Hapus test record
-  const del = await safeQuery('delete', () => sb.from('sbbk_obat').delete().eq('nomor_surat', testPayload.nomor_surat));
+  const del = await safeQuery('delete', (signal) => sb.from('sbbk_obat').delete().eq('nomor_surat', testPayload.nomor_surat).abortSignal(signal));
   if(del.error) return { ok: false, detail: 'INSERT OK tapi DELETE gagal: ' + del.error.message };
   return { ok: true, detail: 'INSERT + DELETE berhasil (test record dibersihkan)' };
 }
