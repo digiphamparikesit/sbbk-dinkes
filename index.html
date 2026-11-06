@@ -184,7 +184,7 @@
       <a data-page="master">💊 Master Barang</a>
       <a data-page="debug">🔍 Debug Supabase</a>
     </nav>
-    <footer>© 2024 SBBK Obat<br>v2.8</footer>
+    <footer>© 2024 SBBK Obat<br>v3.0</footer>
   </aside>
 
   <main>
@@ -221,17 +221,36 @@
           <button class="btn btn-ghost" onclick="resetFilter()">↻ Reset</button>
         </div>
       </div>
+      
       <div class="cards">
         <div class="card"><div class="label">Total Nilai Transaksi</div><div class="value" id="statTotal">Rp 0</div><div class="sub" id="statTotalSub">0 transaksi</div></div>
         <div class="card" style="border-left-color:#3b82f6"><div class="label">Jenis Item</div><div class="value" id="statItem">0</div><div class="sub">jenis tercatat</div></div>
         <div class="card" style="border-left-color:#f59e0b"><div class="label">Total Jumlah</div><div class="value" id="statJumlah">0</div><div class="sub">unit keseluruhan</div></div>
         <div class="card" style="border-left-color:#8b5cf6"><div class="label">Instansi Terlibat</div><div class="value" id="statInstansi">0</div><div class="sub">asal pengirim</div></div>
       </div>
+
       <div class="chart-grid">
         <div class="chart-box"><h3>Nilai Transaksi per Asal Instansi</h3><canvas id="chartBar"></canvas></div>
         <div class="chart-box"><h3>Proporsi Kategori</h3><canvas id="chartPie"></canvas></div>
       </div>
-      <div class="chart-box" style="margin-top:20px"><h3>Tren Nilai Transaksi Harian</h3><canvas id="chartLine"></canvas></div>
+      
+      <div class="chart-box" style="margin-top:20px;height:360px">
+        <h3>Tren Nilai Transaksi Harian</h3>
+        <canvas id="chartLine"></canvas>
+      </div>
+
+      <!-- FITUR BARU: GRAFIK PER BULAN -->
+      <div class="chart-box" style="margin-top:20px;height:360px">
+        <h3>Total Nilai Transaksi Per Bulan</h3>
+        <canvas id="chartMonthly"></canvas>
+      </div>
+
+      <!-- FITUR BARU: TABEL REKAP PER BULAN -->
+      <div class="panel" style="margin-top:20px">
+        <h3>📅 Rekapitulasi Nilai Per Bulan (Berdasarkan Tahun)</h3>
+        <div id="monthlyTablesWrap"></div>
+      </div>
+
     </section>
 
     <!-- INPUT -->
@@ -808,7 +827,7 @@ async function testWrite(){
 
 /* =============== AUTO-RETRY DI LOAD DATA =============== */
 let allData = [], masterData = [], filteredData = [];
-let chartBar, chartPie, chartLine;
+let chartBar, chartPie, chartLine, chartMonthly;
 const ROWS_PER_PAGE = 10;
 let dataPage = 1, masterPage = 1, editingMasterId = null;
 
@@ -1221,6 +1240,7 @@ function resetFilter(){
   document.getElementById('fKategori').value='';
   loadDashboard();
 }
+
 async function loadDashboard(){
   const from = document.getElementById('fFrom').value;
   const to = document.getElementById('fTo').value;
@@ -1246,21 +1266,34 @@ async function loadDashboard(){
   document.getElementById('statJumlah').textContent = totalJumlah.toLocaleString('id-ID');
   document.getElementById('statInstansi').textContent = uniqueInstansi;
 
-  const byAsal = {}, byKat = {}, byDate = {};
+  const byAsal = {}, byKat = {}, byDate = {}, byMonth = {};
   rows.forEach(r=>{
     const a = r.asal_instansi || 'Lainnya';
     byAsal[a] = (byAsal[a]||0) + (+r.nilai_transaksi||0);
+    
     const k = r.kategori || 'LAINNYA';
     byKat[k] = (byKat[k]||0) + (+r.nilai_transaksi||0);
+    
     const d = r.tanggal_surat || '-';
     byDate[d] = (byDate[d]||0) + (+r.nilai_transaksi||0);
+    
+    // Format: YYYY-MM
+    if(r.tanggal_surat){
+      const monthKey = r.tanggal_surat.slice(0, 7); 
+      if(!byMonth[monthKey]) byMonth[monthKey] = { total: 0, count: 0 };
+      byMonth[monthKey].total += (+r.nilai_transaksi||0);
+      byMonth[monthKey].count += 1;
+    }
   });
+
   const sortedDates = Object.keys(byDate).sort();
+  const sortedMonths = Object.keys(byMonth).sort();
   const greenPalette = ['#2d6a4f','#40916c','#74c69d','#95d5b2','#b7e4c7','#d8f3dc','#f0f7f4'];
 
   if(chartBar) chartBar.destroy();
   if(chartPie) chartPie.destroy();
   if(chartLine) chartLine.destroy();
+  if(chartMonthly) chartMonthly.destroy();
 
   chartBar = new Chart(document.getElementById('chartBar'),{
     type:'bar',
@@ -1277,6 +1310,89 @@ async function loadDashboard(){
     data:{ labels:sortedDates.map(d=>formatDate(d)), datasets:[{ label:'Nilai', data:sortedDates.map(d=>byDate[d]), borderColor:'#2d6a4f', backgroundColor:'rgba(116,198,157,.25)', fill:true, tension:.35, pointBackgroundColor:'#40916c', pointRadius:3 }] },
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt' } } } }
   });
+  
+  // Render Grafik Per Bulan
+  chartMonthly = new Chart(document.getElementById('chartMonthly'),{
+    type:'bar',
+    data:{ 
+      labels: sortedMonths.map(m => {
+        const [y, month] = m.split('-');
+        const namaBulan = new Date(y, month-1).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+        return namaBulan;
+      }), 
+      datasets:[{ 
+        label:'Total Nilai', 
+        data:sortedMonths.map(m => byMonth[m].total), 
+        backgroundColor:'#40916c', 
+        borderRadius:6 
+      }] 
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp '+(v/1e6).toFixed(0)+'jt' } } } }
+  });
+
+  // Render Tabel Rekap Per Bulan
+  renderMonthlyTables(byMonth);
+}
+
+function renderMonthlyTables(byMonth){
+  const wrap = document.getElementById('monthlyTablesWrap');
+  const months = Object.keys(byMonth).sort();
+  
+  if(months.length === 0){
+    wrap.innerHTML = '<div class="empty">Tidak ada data per bulan pada filter ini.</div>';
+    return;
+  }
+
+  // Kelompokkan berdasarkan Tahun
+  const byYear = {};
+  months.forEach(m => {
+    const year = m.slice(0, 4);
+    if(!byYear[year]) byYear[year] = [];
+    byYear[year].push(m);
+  });
+
+  const years = Object.keys(byYear).sort().reverse(); // Urutkan tahun terbaru di atas
+  let html = '';
+
+  years.forEach(year => {
+    html += `<h4 style="margin:16px 0 8px;color:var(--green-800);font-size:14px;">Tahun ${year}</h4>`;
+    html += `<div class="table-wrap" style="margin-bottom:16px;">
+      <table style="min-width:100%;max-width:600px;">
+        <thead><tr>
+          <th>Bulan</th>
+          <th style="text-align:right;">Jumlah Transaksi</th>
+          <th style="text-align:right;">Total Nilai Transaksi</th>
+        </tr></thead>
+        <tbody>`;
+    
+    let yearTotal = 0;
+    let yearCount = 0;
+    
+    byYear[year].forEach(m => {
+      const [y, month] = m.split('-');
+      const namaBulan = new Date(y, month-1).toLocaleDateString('id-ID', { month: 'long' });
+      const data = byMonth[m];
+      yearTotal += data.total;
+      yearCount += data.count;
+      
+      html += `<tr>
+        <td style="text-transform:capitalize;font-weight:600;">${namaBulan}</td>
+        <td style="text-align:right;">${data.count.toLocaleString('id-ID')}</td>
+        <td style="text-align:right;font-weight:600;color:var(--green-800);">${formatRp(data.total)}</td>
+      </tr>`;
+    });
+    
+    // Subtotal per tahun
+    html += `<tr style="background:#f7fbf8;font-weight:700;">
+      <td>Total ${year}</td>
+      <td style="text-align:right;">${yearCount.toLocaleString('id-ID')}</td>
+      <td style="text-align:right;color:var(--green-800);">${formatRp(yearTotal)}</td>
+    </tr>`;
+    
+    html += `</tbody></table></div>`;
+  });
+
+  wrap.innerHTML = html;
 }
 
 /* =============== MASTER =============== */
